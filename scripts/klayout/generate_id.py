@@ -1,9 +1,26 @@
 # Copyright (c) 2025 Leo Moser <leo.moser@pm.me>
 # SPDX-License-Identifier: Apache-2.0
 
+import os
 import sys
 import pya
 import click
+
+# Try to load the qrcode library
+sys.path.insert(
+    1,
+    os.path.dirname(os.path.abspath(__file__))
+)
+
+try:
+    # Import the qrcode library
+    from qrcode_library import gf180mcu_qrcode
+
+    # Instantiate and register the library
+    gf180mcu_qrcode()
+except:
+    print("Error: Couldn't load the qrcode library.")
+    sys.exit(1)
 
 @click.command()
 @click.argument(
@@ -22,29 +39,45 @@ def check_top(
 ):
     ly = pya.Layout()
     ly.read(input)
+
+    id_cell = ly.cell("gf180mcu_ws_ip__id")
     
-    if id.isdigit() and len(id) == 8:
-        print("OK")
-
-    # the layer where to put the text to
-    txt_layer = pya.LayerInfo(1, 0)
-
-    # create layer 1/0
-    ly.layer(txt_layer)
+    if not id_cell:
+        print("Error: Couldn't find ID cell: 'gf180mcu_ws_ip__id'.")
+        sys.exit(1)
 
     topcell = ly.top_cell()
-    param  = { "layer": txt_layer, "text": "ID:" + id, "mag": 10 }
-
-    # create the PCell variant
-    txtcell = ly.create_cell("TEXT", "Basic", param)
-
-    # insert the PCell variant into the top cell 
-    trans = pya.Trans(0, False, 0, 0)
-    topcell.insert(pya.CellInstArray.new(txtcell.cell_index(), trans))
-
-    print(f"Inserted ID {id}.")
     
-    ly.write(output)
+    
+    ly2 = pya.Layout()
+    param  = { "pixel_width": 142.8/21, "pixel_height": 142.8/21, "content": id, "pixel_type": "octagon" }
+    qrcode_cell = ly2.create_cell("qrcode", "gf180mcu_qrcode", param)
+    
+    if not qrcode_cell:
+        print("Error: Couldn't create the qrcode PCell.")
+        sys.exit(1)
+    
+    # Flatten all levels
+    qrcode_cell.flatten(-1)
+    
+    # Make sure both cells are of the same size
+    assert(id_cell.bbox() == qrcode_cell.bbox())
+    
+    # Clear the ID cell
+    id_cell.clear()
+    
+    # Copy the contents into the id cell
+    id_cell.copy_tree(qrcode_cell)
+
+    print(f"Inserted ID: {id}")
+    
+    # Don't save PCell information in the "$$$CONTEXT_INFO$$$" cell
+    # as this could cause issues further downstream
+    options = pya.SaveLayoutOptions()
+    options.write_context_info = False
+
+    # Save output layout
+    ly.write(output, options)
 
 if __name__ == "__main__":
     check_top()

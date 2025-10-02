@@ -197,7 +197,7 @@ def main(input_layout, top_cell, design_dir):
     flow_cfg = {
         "DESIGN_NAME": top_cell,
         "KLAYOUT_READ_LAYOUT": input_layout,
-        "KLAYOUT_ID": "1234ABCD",
+        "KLAYOUT_ID": "FFFFFFFF",
     }
 
     # Run flow

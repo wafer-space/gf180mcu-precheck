@@ -9,7 +9,11 @@
   };
 
   inputs = {
-    librelane.url = github:librelane/librelane/leo/gf180mcu;
+    nix-eda.url = "github:fossi-foundation/nix-eda";
+    librelane = {
+      url = "github:librelane/librelane/leo/gf180mcu";
+      inputs.nix-eda.follows = "nix-eda";
+    };
   };
 
   outputs = {
@@ -38,7 +42,13 @@
     devShells = nix-eda.forAllSystems (system: let
       pkgs = (self.legacyPackages.${system});
     in {
-      default = lib.callPackageWith pkgs (librelane.createOpenLaneShell {}) {};
+      default = lib.callPackageWith pkgs (librelane.createOpenLaneShell {
+        extra-python-packages = with pkgs.python3.pkgs; (pkgs.lib.optionals pkgs.stdenv.isLinux [
+          # QR-code
+          qrcode
+          pillow
+        ]);
+      }) {};
     });
   };
 }

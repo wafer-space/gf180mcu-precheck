@@ -7,8 +7,14 @@ Precheck for wafer.space MPW runs using the gf180mcu PDK
 
 ## Prerequisites
 
-TODO
+Install LibreLane by following the Nix-based installation instructions: https://librelane.readthedocs.io/en/latest/getting_started/common/nix_installation/index.html
 
 ## Run the Precheck
 
-TODO
+Enable a shell with all tools: `nix-shell`
+
+Now run the precheck with your layout:
+
+```
+python3 precheck.py --input chip_top.gds --top chip_top
+```
