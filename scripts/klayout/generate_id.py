@@ -40,14 +40,13 @@ def check_top(
     ly = pya.Layout()
     ly.read(input)
 
-    id_cell = ly.cell("gf180mcu_ws_ip__id")
-    
-    if not id_cell:
+    if not ly.has_cell("gf180mcu_ws_ip__id"):
         print("Error: Couldn't find ID cell: 'gf180mcu_ws_ip__id'.")
         sys.exit(1)
 
+    id_cell = ly.cell("gf180mcu_ws_ip__id")
+
     topcell = ly.top_cell()
-    
     
     ly2 = pya.Layout()
     param  = { "pixel_width": 142.8/21, "pixel_height": 142.8/21, "content": id, "pixel_type": "octagon" }

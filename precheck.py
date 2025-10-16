@@ -173,31 +173,51 @@ class GenerateID(KLayoutStep):
 class PrecheckFlow(SequentialFlow):
 
     Steps: List[Type[Step]] = [
-        # Read the GDS (Replace with KLayout step that cna read in gds, gds.gz and oas?)
+        # Read the layout (gds, gds.gz and oas)
         ReadLayout,
         # Check that exactly one top-level cell exists
         # and that it matches "DESIGN_NAME"
         CheckTopLevel,
-        # Check the density
-        # KLayout.RunDensity,
-        # Checker.Density,
-        # TODO Check that cells for logo, id etc. exist
-        #      Replace cells with content
+        # Check that cell for id exists
+        # Replace cell with content
         GenerateID,
-        # Run DRC check
+        # Check the density
+        KLayout.RunDensity,
+        Checker.Density,
+        # Run magic DRC
         Magic.DRC,
+        Checker.MagicDRC,
+        # Run KLayout DRC (filler cells)
+        KLayout.DRC,
+        Checker.KLayoutDRC,
     ]
 
 
-def main(input_layout, top_cell, design_dir):
+def main(input_layout, top_cell, design_dir, die_id):
 
     PDK_ROOT = os.getenv("PDK_ROOT", os.path.expanduser("~/.ciel"))
     PDK = os.getenv("PDK", "gf180mcuD")
 
+    if PDK != "gf180mcuD":
+        print(f"Error: Precheck is only supported for gf180mcuD. PDK = {PDK}")
+        sys.exit(1)
+
+    print(f"PDK_ROOT = {PDK_ROOT}")
+    print(f"PDK = {PDK}")
+
     flow_cfg = {
         "DESIGN_NAME": top_cell,
         "KLAYOUT_READ_LAYOUT": input_layout,
-        "KLAYOUT_ID": "FFFFFFFF",
+        "KLAYOUT_ID": die_id,
+        # Prevent false positive DRC errors in I/O cells
+        "MAGIC_GDS_FLATGLOB": [
+            # For contacts
+            "*_CDNS_*",
+            # COMP and Poly2 filler cells need to be
+            # flattened to form a "filltrans" layer
+            "COMP_fill_cell",
+            "Poly2_fill_cell",
+        ],
     }
 
     # Run flow
@@ -213,6 +233,9 @@ def main(input_layout, top_cell, design_dir):
         flow.start()
     except FlowError as e:
         print(f"Error: The precheck failed with the following exception: \n{e}")
+        sys.exit(1)
+
+    print(f"Precheck successfully completed.")
 
 
 if __name__ == "__main__":
@@ -220,8 +243,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", help="The layout file to check and process.")
     parser.add_argument("--top", help="The top-level cell in the layout.")
+    parser.add_argument("--id", default="FFFFFFFF", help="The ID to use for this chip.")
     parser.add_argument("--dir", default=".", help="Directory where to run the flow.")
 
     args = parser.parse_args()
 
-    main(args.input, args.top, args.dir)
+    main(args.input, args.top, args.dir, args.id)
