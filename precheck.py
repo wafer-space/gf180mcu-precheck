@@ -36,7 +36,7 @@ class ReadLayout(KLayoutStep):
     """
 
     id = "KLayout.ReadLayout"
-    name = "Read in a layout"
+    name = "Read in the layout"
 
     inputs = []
     outputs = [DesignFormat.GDS]
@@ -87,7 +87,7 @@ class CheckTopLevel(KLayoutStep):
     """
 
     id = "KLayout.CheckTopLevel"
-    name = "Check top-level name"
+    name = "Check the top-level name"
 
     inputs = [DesignFormat.GDS]
     outputs = []
@@ -182,8 +182,8 @@ class PrecheckFlow(SequentialFlow):
         # Replace cell with content
         GenerateID,
         # Check the density
-        KLayout.RunDensity,
-        Checker.Density,
+        KLayout.Density,
+        Checker.KLayoutDensity,
         # Run magic DRC
         Magic.DRC,
         Checker.MagicDRC,
@@ -217,6 +217,33 @@ def main(input_layout, top_cell, design_dir, die_id):
             # flattened to form a "filltrans" layer
             "COMP_fill_cell",
             "Poly2_fill_cell",
+            # Foundry provided SRAMs
+            "*$$*",
+            "M1_N*",
+            "M1_P*",
+            "M2_M1*",
+            "M3_M2*",
+            "nmos_5p0*",
+            "nmos_1p2*",
+            "pmos_5p0*",
+            "pmos_1p2*",
+            "via1_*",
+            "ypass_gate*",
+            "G_ring_*",
+            # These additional cells must be flattened to get rid of 3.3V devices
+            # (DUALGATE drawn into high-level cells)
+            "dcap_103*",
+            "din_*",
+            "mux821_*",
+            "rdummy_*",
+            "pmoscap_*",
+            "xdec_*",
+            "ypredec*",
+            "xpredec*",
+            "xdec8_*",
+            "prexdec_*",
+            "xdec32_*",
+            "sa_*",
         ],
     }
 
