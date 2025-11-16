@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+
+# PDK (will be cloned in container or mounted)
+gf180mcu/
+
+# LibreLane runs
+librelane/
+
+# Temporary files
+*.tmp
+*.log
+.tmp/
+tmp/
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
