@@ -142,5 +142,6 @@ A Docker container is automatically built and published to GitHub Container Regi
 **GitHub Actions Workflow:**
 - Workflow: `.github/workflows/docker-publish.yml`
 - Triggers: pushes to main, version tags (v*), pull requests, manual dispatch
-- Tags: `latest` for main branch, semantic versions for tags, SHA-based tags for commits
+- Tags: `latest` for main branch, semantic versions for tags, SHA-based tags, and `git-describe` versions
+- Git-describe versioning: uses `v0.0` as base tag, generates versions like `v0.0-7-g4c45957`
 - Uses Docker buildx with GitHub Actions cache for faster builds
