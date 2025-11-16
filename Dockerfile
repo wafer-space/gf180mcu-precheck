@@ -14,7 +14,7 @@ COPY flake.nix flake.lock ./
 
 # Build the development environment and cache dependencies
 # This creates a profile with all dependencies installed
-RUN nix develop --profile /nix/var/nix/profiles/dev-profile --command echo "Dependencies cached"
+RUN nix develop --accept-flake-config --profile /nix/var/nix/profiles/dev-profile --command echo "Dependencies cached"
 
 # Copy the rest of the repository
 COPY . .
@@ -25,8 +25,8 @@ ENV PDK=gf180mcuD
 
 # Create a helper script to enter the development environment
 RUN mkdir -p /usr/local/bin && \
-    echo '#!/bin/sh\nexec nix develop --profile /nix/var/nix/profiles/dev-profile --command "$@"' > /usr/local/bin/dev-shell && \
+    echo '#!/bin/sh\nexec nix develop --accept-flake-config --profile /nix/var/nix/profiles/dev-profile --command "$@"' > /usr/local/bin/dev-shell && \
     chmod +x /usr/local/bin/dev-shell
 
 # Default command: enter the development shell
-CMD ["nix", "develop", "--profile", "/nix/var/nix/profiles/dev-profile"]
+CMD ["nix", "develop", "--accept-flake-config", "--profile", "/nix/var/nix/profiles/dev-profile"]
