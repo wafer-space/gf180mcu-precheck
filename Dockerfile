@@ -24,7 +24,8 @@ ENV PDK_ROOT=/workspace/gf180mcu
 ENV PDK=gf180mcuD
 
 # Create a helper script to enter the development environment
-RUN echo '#!/bin/sh\nexec nix develop --profile /nix/var/nix/profiles/dev-profile --command "$@"' > /usr/local/bin/dev-shell && \
+RUN mkdir -p /usr/local/bin && \
+    echo '#!/bin/sh\nexec nix develop --profile /nix/var/nix/profiles/dev-profile --command "$@"' > /usr/local/bin/dev-shell && \
     chmod +x /usr/local/bin/dev-shell
 
 # Default command: enter the development shell
