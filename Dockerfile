@@ -1,8 +1,10 @@
 # Use Nix as the base image for reproducible builds
 FROM nixos/nix:latest
 
-# Enable flakes and other experimental features
-RUN echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf
+# Enable flakes and configure binary caches
+RUN echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf && \
+    echo "extra-substituters = https://cache.nixos.org https://nix-cache.fossi-foundation.org" >> /etc/nix/nix.conf && \
+    echo "extra-trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-cache.fossi-foundation.org:3+K59iFwXqKsL7BNu6Guy0v+uTlwsxYQxjspXzqLYQs=" >> /etc/nix/nix.conf
 
 # Set working directory
 WORKDIR /workspace
