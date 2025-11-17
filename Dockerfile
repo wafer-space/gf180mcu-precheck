@@ -22,6 +22,7 @@ COPY . .
 # Set up environment variables
 ENV PDK_ROOT=/workspace/gf180mcu
 ENV PDK=gf180mcuD
+ENV PATH=/usr/local/bin:$PATH
 
 # Create a helper script to enter the development environment
 RUN mkdir -p /usr/local/bin && \
