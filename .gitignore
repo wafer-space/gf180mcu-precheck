@@ -5,3 +5,6 @@ gf180_drc.lyrdb
 *.gds
 *.gds.gz
 *.oas
+
+# Claude Code local settings
+.claude/
