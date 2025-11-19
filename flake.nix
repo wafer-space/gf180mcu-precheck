@@ -43,7 +43,7 @@
       pkgs = (self.legacyPackages.${system});
     in {
       default = lib.callPackageWith pkgs (librelane.createOpenLaneShell {
-        extra-python-packages = with pkgs.python3.pkgs; (pkgs.lib.optionals pkgs.stdenv.isLinux [
+        extra-python-packages = with pkgs.python3.pkgs; ([
           # QR-code
           qrcode
           pillow
