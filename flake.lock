@@ -95,6 +95,7 @@
       },
       "original": {
         "owner": "fossi-foundation",
+        "ref": "5.9.0",
         "repo": "nix-eda",
         "type": "github"
       }
