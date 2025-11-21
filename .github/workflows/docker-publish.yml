@@ -35,6 +35,29 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Generated version: $VERSION"
 
+      - name: Generate SHA tag prefix
+        id: sha_prefix
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            printf -v PREFIX "pr%04d" "${{ github.event.pull_request.number }}"
+          elif [[ "${{ github.ref }}" == refs/heads/* ]]; then
+            PREFIX="${{ github.ref_name }}"
+          else
+            PREFIX=""
+          fi
+          echo "value=$PREFIX" >> $GITHUB_OUTPUT
+          echo "Generated SHA tag prefix: $PREFIX"
+
+      # Check if token can write to GitHub Actions cache (needed for cache-to)
+      - name: Check token permissions for GHA cache
+        id: gha_cache_permissions
+        run: |
+          CAN_WRITE=$(gh api repos/${{ github.repository }} --jq '.permissions.push // false')
+          echo "can_write=$CAN_WRITE" >> $GITHUB_OUTPUT
+          echo "Token has GHA cache write permission: $CAN_WRITE"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -57,7 +80,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-            type=sha,prefix={{branch}}-
+            type=sha,prefix=${{ steps.sha_prefix.outputs.value }}-,enable=${{ steps.sha_prefix.outputs.value != '' }}
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=${{ steps.version.outputs.version }}
 
@@ -65,8 +88,9 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: ${{ github.event_name != 'pull_request' }}
+          # Only push to GHCR for branch/tag pushes on the main repo (not PRs, not forks)
+          push: ${{ github.event_name != 'pull_request' && github.repository == 'wafer-space/gf180mcu-precheck' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: ${{ steps.gha_cache_permissions.outputs.can_write == 'true' && 'type=gha,mode=max' || '' }}
