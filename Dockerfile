@@ -14,7 +14,8 @@ COPY flake.nix flake.lock ./
 
 # Build the development environment and cache dependencies
 # This creates a profile with all dependencies installed
-RUN nix develop --accept-flake-config --profile /nix/var/nix/profiles/dev-profile --command echo "Dependencies cached"
+# Running python3 --version ensures Python environment is fully cached
+RUN nix develop --accept-flake-config --profile /nix/var/nix/profiles/dev-profile --command python3 --version
 
 # Copy the rest of the repository
 COPY . .
