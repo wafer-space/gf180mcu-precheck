@@ -2,7 +2,7 @@
 
 import asyncio
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -76,7 +76,7 @@ class QueueProcessor:
                     run["Id"],
                     status="failed",
                     error="Container disappeared",
-                    finished_at=datetime.utcnow().isoformat() + "Z",
+                    finished_at=datetime.now(timezone.utc).isoformat() + "Z",
                 )
                 continue
 
@@ -95,7 +95,7 @@ class QueueProcessor:
                     status=final_status,
                     exit_code=exit_code,
                     error=status.get("error") or None,
-                    finished_at=status.get("finished_at") or datetime.utcnow().isoformat() + "Z",
+                    finished_at=status.get("finished_at") or datetime.now(timezone.utc).isoformat() + "Z",
                     output_checksums=output_checksums,
                 )
 
@@ -127,14 +127,14 @@ class QueueProcessor:
                 run["Id"],
                 status="running",
                 container_id=container.id,
-                started_at=datetime.utcnow().isoformat() + "Z",
+                started_at=datetime.now(timezone.utc).isoformat() + "Z",
             )
         except Exception as e:
             await self.db.update_run(
                 run["Id"],
                 status="failed",
                 error=str(e),
-                finished_at=datetime.utcnow().isoformat() + "Z",
+                finished_at=datetime.now(timezone.utc).isoformat() + "Z",
             )
 
     def _compute_output_checksums(self, run: dict) -> Optional[dict]:

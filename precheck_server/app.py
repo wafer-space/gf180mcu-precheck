@@ -6,7 +6,7 @@ import shutil
 import tarfile
 import uuid
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
@@ -257,7 +257,7 @@ def create_app(config: Config) -> FastAPI:
             await db.update_run(
                 run_id,
                 status="cancelled",
-                finished_at=datetime.utcnow().isoformat() + "Z",
+                finished_at=datetime.now(timezone.utc).isoformat() + "Z",
             )
 
         return {"message": "Precheck cancelled"}
