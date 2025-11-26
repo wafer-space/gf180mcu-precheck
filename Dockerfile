@@ -41,12 +41,9 @@ ENV PDK_ROOT=/workspace/gf180mcu
 ENV PDK=gf180mcuD
 ENV PATH=/usr/local/bin:$PATH
 
-# Create a helper script to enter the development environment
-# With no args: enters interactive nix develop shell
-# With args: runs command inside the nix environment
-RUN mkdir -p /usr/local/bin && \
-    printf '#!/bin/sh\nif [ $# -eq 0 ]; then\n  exec nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/dev-profile\nelse\n  exec nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/dev-profile --command "$@"\nfi\n' > /usr/local/bin/dev-shell && \
-    chmod +x /usr/local/bin/dev-shell
+# Copy helper script to run commands in the nix development environment
+COPY scripts/dev-shell /usr/local/bin/dev-shell
+RUN chmod +x /usr/local/bin/dev-shell
 
 # Use dev-shell as entrypoint so all commands run in the nix environment
 # Users can run: docker run <image> python precheck.py --help
