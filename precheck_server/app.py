@@ -15,6 +15,7 @@ from precheck_server import __version__
 from precheck_server.config import Config
 from precheck_server.database import Database
 from precheck_server.docker_client import DockerClient
+from precheck_server.queue_processor import QueueProcessor
 from precheck_server.models import (
     CreatePrecheckRequest,
     ErrorResponse,
@@ -39,6 +40,11 @@ def create_app(config: Config) -> FastAPI:
         container_prefix=config.docker.container_prefix,
         image=config.docker.image,
     )
+    processor = QueueProcessor(
+        db=db,
+        docker=docker,
+        max_concurrent=config.server.max_concurrent,
+    )
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -52,9 +58,13 @@ def create_app(config: Config) -> FastAPI:
         uploads_dir.mkdir(parents=True, exist_ok=True)
         runs_dir.mkdir(parents=True, exist_ok=True)
 
+        # Start queue processor
+        await processor.start()
+
         yield
 
         # Shutdown
+        await processor.stop()
         await db.close()
 
     app = FastAPI(
