@@ -93,35 +93,35 @@ def cleanup(config_path: Path, dry_run: bool):
     type=click.Path(exists=True, path_type=Path),
     help="Configuration file path",
 )
-def reset(config_path: Path):
-    """Reset server state."""
-    import shutil
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+def status(config_path: Path, as_json: bool):
+    """Show current server status."""
+    import json as json_module
 
     config = load_config(config_path)
-
-    # Check for orphaned containers
     docker = DockerClient(
         container_prefix=config.docker.container_prefix,
         image=config.docker.image,
     )
-    orphans = docker.has_orphans()
-    if orphans:
-        click.echo(f"Error: Found {len(orphans)} orphaned containers:", err=True)
-        for name in orphans:
-            click.echo(f"  - {name}", err=True)
-        click.echo("\nRun 'precheck-server cleanup' first", err=True)
-        raise SystemExit(1)
 
-    # Remove storage directory
-    storage_path = config.server.storage_path
-    if storage_path.exists():
-        click.echo(f"Removing storage directory: {storage_path}")
-        shutil.rmtree(storage_path)
-        click.echo("Storage directory removed")
+    containers = docker.list_precheck_containers()
+    running = [c for c in containers if c.status == "running"]
+
+    status_data = {
+        "storage_path": str(config.server.storage_path),
+        "max_concurrent": config.server.max_concurrent,
+        "containers": {
+            "total": len(containers),
+            "running": len(running),
+        },
+    }
+
+    if as_json:
+        click.echo(json_module.dumps(status_data, indent=2))
     else:
-        click.echo("Storage directory does not exist")
-
-    click.echo("Server state reset complete")
+        click.echo(f"Storage: {status_data['storage_path']}")
+        click.echo(f"Max concurrent: {status_data['max_concurrent']}")
+        click.echo(f"Containers: {len(running)} running, {len(containers)} total")
 
 
 if __name__ == "__main__":
