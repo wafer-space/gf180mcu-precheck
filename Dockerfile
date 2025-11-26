@@ -21,8 +21,11 @@ RUN nix develop --accept-flake-config --profile /nix/var/nix/profiles/dev-profil
 # This ensures all dependencies are properly cached in the profile
 RUN nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/dev-profile --command python3 --version
 
-# Clone the PDK into the image
-RUN git clone https://github.com/wafer-space/gf180mcu.git /workspace/gf180mcu --depth 1
+# Copy Makefile to use for PDK cloning (uses pinned PDK_TAG version)
+COPY Makefile ./
+
+# Clone the PDK into the image using Makefile target
+RUN nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/dev-profile --command make clone-pdk
 
 # Copy the rest of the repository
 COPY . .
