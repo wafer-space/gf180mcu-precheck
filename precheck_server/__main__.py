@@ -1,5 +1,6 @@
 """CLI entry point."""
 
+import secrets
 from pathlib import Path
 
 import click
@@ -339,6 +340,28 @@ def runs_prune(config_path: Path, status: tuple, dry_run: bool):
     deleted = asyncio.run(_prune())
     if deleted:
         click.echo(f"\nDeleted {len(deleted)} runs")
+
+
+@cli.group()
+def apikey():
+    """Manage API keys."""
+    pass
+
+
+@apikey.command("generate")
+@click.option("--name", default="", help="Optional name for the key")
+def apikey_generate(name: str):
+    """Generate a new API key."""
+    key = f"ws_key_{secrets.token_hex(24)}"
+
+    click.echo(f"\nGenerated API key:")
+    click.echo(f"  Name: {name or '(unnamed)'}")
+    click.echo(f"  Key:  {key}")
+    click.echo(f"\nAdd to config.toml:")
+    click.echo(f'  [[auth.api_keys]]')
+    click.echo(f'  name = "{name}"')
+    click.echo(f'  key = "{key}"')
+    click.echo(f"\n⚠️  Save this key now - it cannot be retrieved later")
 
 
 if __name__ == "__main__":
