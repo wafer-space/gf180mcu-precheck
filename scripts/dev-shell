@@ -3,10 +3,8 @@
 # With no args: enters interactive nix develop shell
 # With args: runs command inside the nix environment
 
-NIX_ARGS="--accept-flake-config --offline --profile /nix/var/nix/profiles/dev-profile"
-
 if [ $# -eq 0 ]; then
-    exec nix develop $NIX_ARGS
+    exec nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/dev-profile
 else
-    exec nix develop $NIX_ARGS --command "$@"
+    exec nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/dev-profile --command "$@"
 fi
