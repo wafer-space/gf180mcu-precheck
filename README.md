@@ -2,20 +2,15 @@
 
 Precheck for wafer.space MPW runs using the gf180mcu PDK
 
-> [!CAUTION]
-> This repository is still WIP.
-
 The precheck performs the following checks:
 
 - Ensures there is only one top-level cell and it matches the `--top` argument.
+- Checks that the origin is at 0, 0 and the dimensions match the selected slot size.
 - Ensures the `gf180mcu_ws_ip__id` cell exists in the layout. Replaces its contents with a QR code of the `--id` argument.
-- Checks the density of the design.
+- Checks the density of the layout.
+- Ensures there are no zero area polygons in the layout.
 - Runs magic DRC.
 - Runs KLayout DRC.
-
-TODO:
-
-- Remove all unused cells? This ensures `gf180mcu_ws_ip__id` is actually instantiated. Or just check the instantiations?
 
 ## Prerequisites
 
@@ -36,5 +31,5 @@ export PDK_ROOT=gf180mcu && export PDK=gf180mcuD
 Now run the precheck with your layout:
 
 ```
-python3 precheck.py --input chip_top.gds --top chip_top
+python3 precheck.py --input chip_top.gds
 ```
