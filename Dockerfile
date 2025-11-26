@@ -1,6 +1,12 @@
 # Use Nix as the base image for reproducible builds
 FROM nixos/nix:latest
 
+# Image metadata
+LABEL org.opencontainers.image.title="gf180mcu-precheck"
+LABEL org.opencontainers.image.description="Precheck tool for wafer.space MPW runs using the gf180mcu PDK. Validates GDS layouts before fabrication."
+LABEL org.opencontainers.image.usage="docker run --rm --network=none -v \$(pwd)/design:/data ghcr.io/wafer-space/gf180mcu-precheck python precheck.py --input /data/chip_top.gds --top chip_top --dir /data"
+LABEL org.opencontainers.image.source="https://github.com/wafer-space/gf180mcu-precheck"
+
 # Enable flakes and configure binary caches
 RUN echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf && \
     echo "extra-substituters = https://cache.nixos.org https://nix-cache.fossi-foundation.org" >> /etc/nix/nix.conf && \
