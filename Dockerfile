@@ -34,8 +34,8 @@ ENV PATH=/usr/local/bin:$PATH
 
 # Create a helper script to enter the development environment
 RUN mkdir -p /usr/local/bin && \
-    printf '#!/bin/sh\nexec nix develop --accept-flake-config --profile /nix/var/nix/profiles/dev-profile --command "$@"\n' > /usr/local/bin/dev-shell && \
+    printf '#!/bin/sh\nexec nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/dev-profile --command "$@"\n' > /usr/local/bin/dev-shell && \
     chmod +x /usr/local/bin/dev-shell
 
 # Default command: enter the development shell
-CMD ["nix", "develop", "--accept-flake-config", "--profile", "/nix/var/nix/profiles/dev-profile"]
+CMD ["nix", "develop", "--accept-flake-config", "--offline", "--profile", "/nix/var/nix/profiles/dev-profile"]
