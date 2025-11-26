@@ -1,7 +1,7 @@
 """Tests for database operations."""
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timezone
 from pathlib import Path
 import tempfile
 
@@ -111,7 +111,7 @@ async def test_update_run_status(db):
         "run-1",
         status="running",
         container_id="docker-abc123",
-        started_at=datetime.utcnow().isoformat() + "Z",
+        started_at=datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
     )
 
     run = await db.get_run("run-1")

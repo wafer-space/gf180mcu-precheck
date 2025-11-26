@@ -1,7 +1,7 @@
 """SQLite database operations."""
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -76,7 +76,7 @@ class Database:
 
     def _now_iso(self) -> str:
         """Get current UTC time in ISO format."""
-        return datetime.utcnow().isoformat() + "Z"
+        return datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
 
     # Upload operations
 
@@ -91,8 +91,8 @@ class Database:
         """Create a new upload record."""
         now = self._now_iso()
         expires = (
-            datetime.utcnow() + timedelta(minutes=self.upload_expiry_minutes)
-        ).isoformat() + "Z"
+            datetime.now(timezone.utc) + timedelta(minutes=self.upload_expiry_minutes)
+        ).isoformat().replace('+00:00', 'Z')
 
         await self._conn.execute(
             """
@@ -122,8 +122,8 @@ class Database:
         if not row:
             return None
 
-        now = datetime.utcnow()
-        expires_at = datetime.fromisoformat(row["ExpiresAt"].rstrip("Z"))
+        now = datetime.now(timezone.utc)
+        expires_at = datetime.fromisoformat(row["ExpiresAt"].rstrip("Z")).replace(tzinfo=timezone.utc)
         expired = now > expires_at
 
         return {
@@ -143,9 +143,9 @@ class Database:
         rows = await cursor.fetchall()
 
         results = []
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         for row in rows:
-            expires_at = datetime.fromisoformat(row["ExpiresAt"].rstrip("Z"))
+            expires_at = datetime.fromisoformat(row["ExpiresAt"].rstrip("Z")).replace(tzinfo=timezone.utc)
             expired = now > expires_at
             results.append({
                 "Id": row["Id"],
