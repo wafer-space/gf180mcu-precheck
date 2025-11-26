@@ -17,6 +17,10 @@ COPY flake.nix flake.lock ./
 # Running python3 --version ensures Python environment is fully cached
 RUN nix develop --accept-flake-config --profile /nix/var/nix/profiles/dev-profile --command python3 --version
 
+# Verify the nix environment works offline (no network needed)
+# This ensures all dependencies are properly cached in the profile
+RUN nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/dev-profile --command python3 --version
+
 # Copy the rest of the repository
 COPY . .
 
