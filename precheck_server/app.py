@@ -12,6 +12,7 @@ from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 
 from precheck_server import __version__
+from precheck_server.auth import AuthMiddleware
 from precheck_server.config import Config
 from precheck_server.database import Database
 from precheck_server.docker_client import DockerClient
@@ -73,6 +74,9 @@ def create_app(config: Config) -> FastAPI:
         version=__version__,
         lifespan=lifespan,
     )
+
+    # Add auth middleware
+    app.add_middleware(AuthMiddleware, auth_config=config.auth)
 
     # Store config and components in app state
     app.state.config = config
