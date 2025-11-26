@@ -14,7 +14,15 @@ COPY flake.nix flake.lock ./
 
 # Build the development environment and cache dependencies
 # This creates a profile with all dependencies installed
-RUN nix develop --accept-flake-config --profile /nix/var/nix/profiles/dev-profile --command echo "Dependencies cached"
+# Running python3 --version ensures Python environment is fully cached
+RUN nix develop --accept-flake-config --profile /nix/var/nix/profiles/dev-profile --command python3 --version
+
+# Verify the nix environment works offline (no network needed)
+# This ensures all dependencies are properly cached in the profile
+RUN nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/dev-profile --command python3 --version
+
+# Clone the PDK into the image
+RUN git clone https://github.com/wafer-space/gf180mcu.git /workspace/gf180mcu --depth 1
 
 # Copy the rest of the repository
 COPY . .
@@ -26,8 +34,8 @@ ENV PATH=/usr/local/bin:$PATH
 
 # Create a helper script to enter the development environment
 RUN mkdir -p /usr/local/bin && \
-    printf '#!/bin/sh\nexec nix develop --accept-flake-config --profile /nix/var/nix/profiles/dev-profile --command "$@"\n' > /usr/local/bin/dev-shell && \
+    printf '#!/bin/sh\nexec nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/dev-profile --command "$@"\n' > /usr/local/bin/dev-shell && \
     chmod +x /usr/local/bin/dev-shell
 
 # Default command: enter the development shell
-CMD ["nix", "develop", "--accept-flake-config", "--profile", "/nix/var/nix/profiles/dev-profile"]
+CMD ["nix", "develop", "--accept-flake-config", "--offline", "--profile", "/nix/var/nix/profiles/dev-profile"]
