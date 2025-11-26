@@ -13,6 +13,7 @@ from fastapi.responses import FileResponse
 
 from precheck_server import __version__
 from precheck_server.auth import AuthMiddleware
+from precheck_server.cleanup import UploadCleanup
 from precheck_server.config import Config
 from precheck_server.database import Database
 from precheck_server.docker_client import DockerClient
@@ -46,6 +47,10 @@ def create_app(config: Config) -> FastAPI:
         docker=docker,
         max_concurrent=config.server.max_concurrent,
     )
+    cleanup = UploadCleanup(
+        db=db,
+        uploads_dir=config.server.storage_path / "uploads",
+    )
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -59,12 +64,14 @@ def create_app(config: Config) -> FastAPI:
         uploads_dir.mkdir(parents=True, exist_ok=True)
         runs_dir.mkdir(parents=True, exist_ok=True)
 
-        # Start queue processor
+        # Start queue processor and cleanup
         await processor.start()
+        await cleanup.start()
 
         yield
 
         # Shutdown
+        await cleanup.stop()
         await processor.stop()
         await db.close()
 
