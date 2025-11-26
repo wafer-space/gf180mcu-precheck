@@ -32,26 +32,28 @@ def draw_qrcode(layout, pixel_width, pixel_height, content, metal_level, pixel_t
     qr.add_data(content)
     qr.make(fit=True)
     img = qr.make_image(fill_color="white", back_color="black")
-    
+
     # Create the pixel cell
     pixel_cell = layout.cell(layout.add_cell("qrcode_pixel"))
     if pixel_type == "octagon":
         factor = 0.2
-        pixel_cell.shapes(Layers.by_name(metal_level)).insert(pya.DPolygon([
-            pya.DPoint(0*pixel_width, factor*pixel_height),
-            pya.DPoint(0*pixel_width, (1-factor)*pixel_height),
-            pya.DPoint(factor*pixel_width, 1*pixel_height),
-            pya.DPoint((1-factor)*pixel_width, 1*pixel_height),
-            pya.DPoint(1*pixel_width, (1-factor)*pixel_height),
-            pya.DPoint(1*pixel_width, factor*pixel_height),
-            pya.DPoint((1-factor)*pixel_width, 0*pixel_height),
-            pya.DPoint(factor*pixel_width, 0*pixel_height),
-        ]))
+        pixel_cell.shapes(Layers.by_name(metal_level)).insert(
+            pya.DPolygon(
+                [
+                    pya.DPoint(0 * pixel_width, factor * pixel_height),
+                    pya.DPoint(0 * pixel_width, (1 - factor) * pixel_height),
+                    pya.DPoint(factor * pixel_width, 1 * pixel_height),
+                    pya.DPoint((1 - factor) * pixel_width, 1 * pixel_height),
+                    pya.DPoint(1 * pixel_width, (1 - factor) * pixel_height),
+                    pya.DPoint(1 * pixel_width, factor * pixel_height),
+                    pya.DPoint((1 - factor) * pixel_width, 0 * pixel_height),
+                    pya.DPoint(factor * pixel_width, 0 * pixel_height),
+                ]
+            )
+        )
     elif pixel_type == "square":
         pixel_cell.shapes(Layers.by_name(metal_level)).insert(
-            pya.DBox.new(
-                0, 0, pixel_width, pixel_height
-            )
+            pya.DBox.new(0, 0, pixel_width, pixel_height)
         )
 
     width, height = img.size
@@ -61,22 +63,31 @@ def draw_qrcode(layout, pixel_width, pixel_height, content, metal_level, pixel_t
     # Draw the QR code
     for y in range(height):
         print("> ", end="")
-    
+
         for x in range(width):
             pixel = img.getpixel((x, y))
 
             if pixel == (255, 255, 255):
                 print("██", end="")
                 inverted_y = height - y - 1
-                qrcode_cell.insert(pya.DCellInstArray(pixel_cell.cell_index(), pya.DVector(x * pixel_width, inverted_y * pixel_height)))
+                qrcode_cell.insert(
+                    pya.DCellInstArray(
+                        pixel_cell.cell_index(),
+                        pya.DVector(x * pixel_width, inverted_y * pixel_height),
+                    )
+                )
             else:
                 print("  ", end="")
         print("")
 
     # No metal fill
-    qrcode_cell.shapes(Layers.PMNDMY).insert(pya.DBox.new(0, 0, pixel_width * width, pixel_height * height))
+    qrcode_cell.shapes(Layers.PMNDMY).insert(
+        pya.DBox.new(0, 0, pixel_width * width, pixel_height * height)
+    )
 
     # Add boundary
-    qrcode_cell.shapes(Layers.PR_bndry).insert(pya.DBox.new(0, 0, pixel_width * width, pixel_height * height))
+    qrcode_cell.shapes(Layers.PR_bndry).insert(
+        pya.DBox.new(0, 0, pixel_width * width, pixel_height * height)
+    )
 
     return qrcode_cell

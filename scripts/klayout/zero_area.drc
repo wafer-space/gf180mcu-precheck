@@ -1,0 +1,18 @@
+if $input
+  if $topcell
+    source($input, $topcell)
+  else
+    source($input)
+  end
+end
+
+if $report
+  report('Zero Area Polygon Report', $report)
+else
+  report('Zero Area Polygon Report')
+end
+
+# deep mode is not faster and does not seem to detect zero area polygons
+flat
+
+layers.each { |layer| polygons(layer).raw.with_area(0.0).output("#{layer.to_s}_zero_area", "#{layer.to_s} zero area polygon violation")}
