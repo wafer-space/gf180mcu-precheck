@@ -117,6 +117,50 @@ class CheckTopLevel(KLayoutStep):
 
         return views_updates, metrics_updates
 
+@Step.factory.register()
+class CheckSize(KLayoutStep):
+    """
+    Checks that the origin is at 0, 0 and the dimensions match the selected slot size.
+    """
+
+    id = "KLayout.CheckSize"
+    name = "Check Size"
+
+    inputs = [DesignFormat.GDS]
+    outputs = []
+
+    config_vars = [
+        Variable(
+            "KLAYOUT_SLOT",
+            str,
+            "The slot size of the design in order to check the dimensions.",
+        ),
+    ]
+
+    def run(self, state_in: State, **kwargs) -> Tuple[ViewsUpdate, MetricsUpdate]:
+        metrics_updates: MetricsUpdate = {}
+        views_updates: ViewsUpdate = {}
+
+        input_view = state_in[DesignFormat.GDS]
+        assert isinstance(input_view, Path)
+
+        self.run_pya_script(
+            [
+                sys.executable,
+                os.path.join(
+                    os.path.dirname(__file__),
+                    "scripts",
+                    "klayout",
+                    "check_size.py",
+                ),
+                os.path.abspath(input_view),
+                "--slot",
+                self.config["KLAYOUT_SLOT"],
+            ]
+        )
+
+        return views_updates, metrics_updates
+
 
 @Step.factory.register()
 class GenerateID(KLayoutStep):
@@ -178,7 +222,7 @@ class ZeroAreaPolygons(KLayoutStep):
     """
 
     id = "KLayout.ZeroAreaPolygons"
-    name = "KLayout Zero Area Polygons"
+    name = "Find Zero Area Polygons"
 
     inputs = [DesignFormat.GDS]
     outputs = []
@@ -270,6 +314,9 @@ class PrecheckFlow(SequentialFlow):
         # Check that exactly one top-level cell exists
         # and that it matches "DESIGN_NAME"
         CheckTopLevel,
+        # Checks that the origin is at 0, 0 and the
+        # dimensions match the selected slot size.
+        CheckSize,
         # Check that cell for id exists
         # Replace cell with content
         GenerateID,
@@ -288,7 +335,7 @@ class PrecheckFlow(SequentialFlow):
     ]
 
 
-def main(input_layout, top_cell, design_dir, die_id):
+def main(input_layout, top_cell, design_dir, die_id, slot):
 
     PDK_ROOT = os.getenv("PDK_ROOT", os.path.expanduser("~/.ciel"))
     PDK = os.getenv("PDK", "gf180mcuD")
@@ -299,11 +346,19 @@ def main(input_layout, top_cell, design_dir, die_id):
 
     print(f"PDK_ROOT = {PDK_ROOT}")
     print(f"PDK = {PDK}")
+    
+    if not top_cell:
+        top_cell = os.path.splitext(os.path.basename(input_layout))[0]
+
+    print(f"Top cell: {top_cell}")
+    print(f"Die ID: {die_id}")
+    print(f"Slot: {slot}")
 
     flow_cfg = {
         "DESIGN_NAME": top_cell,
         "KLAYOUT_READ_LAYOUT": input_layout,
         "KLAYOUT_ID": die_id,
+        "KLAYOUT_SLOT": slot,
         # Prevent false positive DRC errors in I/O cells
         "MAGIC_GDS_FLATGLOB": [
             # For contacts
@@ -363,11 +418,12 @@ def main(input_layout, top_cell, design_dir, die_id):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", help="The layout file to check and process.")
+    parser.add_argument("--input", help="The layout file to check and process.", required=True)
     parser.add_argument("--top", help="The top-level cell in the layout.")
     parser.add_argument("--id", default="FFFFFFFF", help="The ID to use for this chip.")
     parser.add_argument("--dir", default=".", help="Directory where to run the flow.")
+    parser.add_argument("--slot", default="1x1", choices=["1x1", "0p5x1", "1x0p5", "0p5x0p5"], help="Slot size of the design.")
 
     args = parser.parse_args()
 
-    main(args.input, args.top, args.dir, args.id)
+    main(args.input, args.top, args.dir, args.id, args.slot)
