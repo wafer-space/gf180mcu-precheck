@@ -1,7 +1,9 @@
 """FastAPI application factory."""
 
 import hashlib
+import io
 import shutil
+import tarfile
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -9,7 +11,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 
 from precheck_server import __version__
 from precheck_server.auth import AuthMiddleware
@@ -393,6 +395,34 @@ def create_app(config: Config) -> FastAPI:
             output_path,
             media_type="application/octet-stream",
             filename=f"{top_cell}.gds",
+        )
+
+    @app.get(
+        "/api/v1/debug/prechecks/{run_id}",
+        responses={404: {"model": ErrorResponse}},
+    )
+    async def get_debug_tarball(run_id: str):
+        """Download full run directory as tarball."""
+        run = await db.get_run(run_id)
+        if not run:
+            raise HTTPException(status_code=404, detail=f"No such precheck: {run_id}")
+
+        run_dir = Path(run["_run_dir"])
+        if not run_dir.exists():
+            raise HTTPException(status_code=404, detail="Run directory not found")
+
+        # Create tarball in memory
+        tar_buffer = io.BytesIO()
+        with tarfile.open(fileobj=tar_buffer, mode="w:gz") as tar:
+            tar.add(run_dir, arcname=run_id)
+        tar_buffer.seek(0)
+
+        return StreamingResponse(
+            tar_buffer,
+            media_type="application/x-tar",
+            headers={
+                "Content-Disposition": f'attachment; filename="precheck-{run_id}.tar.gz"'
+            },
         )
 
     return app
