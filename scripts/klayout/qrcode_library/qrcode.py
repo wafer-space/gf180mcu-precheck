@@ -20,6 +20,7 @@ default_height = 10
 minimum_width = 1
 minimum_height = 1
 
+
 class qrcode(pya.PCellDeclarationHelper):
     """
     QR code generator for GF180MCU
@@ -30,8 +31,20 @@ class qrcode(pya.PCellDeclarationHelper):
         # Initialize parent cell
         super(qrcode, self).__init__()
 
-        self.param("pixel_width", self.TypeDouble, "Pixel Width", default=default_width, unit="um")
-        self.param("pixel_height", self.TypeDouble, "Pixel Height", default=default_height, unit="um")
+        self.param(
+            "pixel_width",
+            self.TypeDouble,
+            "Pixel Width",
+            default=default_width,
+            unit="um",
+        )
+        self.param(
+            "pixel_height",
+            self.TypeDouble,
+            "Pixel Height",
+            default=default_height,
+            unit="um",
+        )
 
         self.content = self.param(
             "content", self.TypeString, "Content", default="Placeholder"
@@ -46,7 +59,7 @@ class qrcode(pya.PCellDeclarationHelper):
         self.metal_handle.add_choice("Metal4", "Metal4")
         self.metal_handle.add_choice("Metal5", "Metal5")
         self.metal_handle.add_choice("MetalTop", "MetalTop")
-        
+
         self.type_handle = self.param(
             "pixel_type",
             self.TypeList,
@@ -62,7 +75,13 @@ class qrcode(pya.PCellDeclarationHelper):
 
     def display_text_impl(self):
         # Description of the cell
-        return "qrcode(W=" + ("%.3f" % self.pixel_width) + ",H=" + ("%.3f" % self.pixel_height) + ")"
+        return (
+            "qrcode(W="
+            + ("%.3f" % self.pixel_width)
+            + ",H="
+            + ("%.3f" % self.pixel_height)
+            + ")"
+        )
 
     def coerce_parameters_impl(self):
         # Limit length and width
@@ -89,7 +108,12 @@ class qrcode(pya.PCellDeclarationHelper):
     def produce_impl(self):
         # Draw the qrcode
         qrcode_instance = draw_qrcode(
-            self.layout, self.pixel_width, self.pixel_height, self.content, self.metal_level, self.pixel_type
+            self.layout,
+            self.pixel_width,
+            self.pixel_height,
+            self.content,
+            self.metal_level,
+            self.pixel_type,
         )
 
         self.cell.insert(

@@ -5,6 +5,7 @@ import sys
 import pya
 import click
 
+
 @click.command()
 @click.argument(
     "input",
@@ -21,6 +22,7 @@ def check_top(
     ly = pya.Layout()
     ly.read(input)
     ly.write(output)
+
 
 if __name__ == "__main__":
     check_top()

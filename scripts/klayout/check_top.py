@@ -5,6 +5,7 @@ import sys
 import pya
 import click
 
+
 @click.command()
 @click.argument(
     "input",
@@ -32,6 +33,7 @@ def check_top(
 
     print(f"Design name '{top}' matches top-level cell in {input}.")
     sys.exit(0)
+
 
 if __name__ == "__main__":
     check_top()

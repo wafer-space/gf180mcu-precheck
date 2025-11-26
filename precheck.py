@@ -10,7 +10,8 @@ import argparse
 
 from typing import List, Type, Tuple
 
-from librelane.common import Path
+from librelane.common import Path, get_script_dir, mkdirp
+from librelane.logging import info
 from librelane.config import Variable
 from librelane.state import DesignFormat, State
 from librelane.flows.sequential import SequentialFlow
@@ -26,8 +27,8 @@ from librelane.steps import (
     StepException,
 )
 from librelane.steps.klayout import KLayoutStep
+from librelane.steps.checker import MetricChecker
 from librelane.flows.flow import FlowError
-
 
 @Step.factory.register()
 class ReadLayout(KLayoutStep):
@@ -170,6 +171,97 @@ class GenerateID(KLayoutStep):
         return views_updates, metrics_updates
 
 
+@Step.factory.register()
+class ZeroAreaPolygons(KLayoutStep):
+    """
+    Find zero area polygons
+    """
+
+    id = "KLayout.ZeroAreaPolygons"
+    name = "KLayout Zero Area Polygons"
+
+    inputs = [DesignFormat.GDS]
+    outputs = []
+
+    def run(self, state_in: State, **kwargs) -> Tuple[ViewsUpdate, MetricsUpdate]:
+        metrics_updates: MetricsUpdate = {}
+        views_updates: ViewsUpdate = {}
+
+        kwargs, env = self.extract_env(kwargs)
+
+        input_gds = state_in[DesignFormat.GDS]
+        assert isinstance(input_gds, Path)
+
+        script = os.path.join(
+            os.path.dirname(__file__),
+            "scripts",
+            "klayout",
+            "zero_area.drc",
+        )
+
+        reports_dir = os.path.join(self.step_dir, "reports")
+        mkdirp(reports_dir)
+        lyrdb_report = os.path.join(reports_dir, "density.klayout.lyrdb")
+        json_report = os.path.join(reports_dir, "density.klayout.json")
+
+        info(f"Running KLayout zero area polygons check…")
+
+        # Not a pya script
+        subprocess_result = self.run_subprocess(
+            [
+                "klayout",
+                "-b",
+                "-zz",
+                "-r",
+                script,
+                "-rd",
+                f"input={os.path.abspath(input_gds)}",
+                "-rd",
+                f"topcell={self.config['DESIGN_NAME']}",
+                "-rd",
+                f"report={os.path.abspath(lyrdb_report)}",
+            ],
+            env=env,
+        )
+
+        subprocess_result = self.run_pya_script(
+            [
+                "python3",
+                os.path.join(
+                    get_script_dir(),
+                    "klayout",
+                    "xml_drc_report_to_json.py",
+                ),
+                f"--xml-file={os.path.abspath(lyrdb_report)}",
+                f"--json-file={os.path.abspath(json_report)}",
+                "--metric=klayout__zero_area_polygons__count",
+            ],
+            env=env,
+            log_to=os.path.join(self.step_dir, "xml_drc_report_to_json.log"),
+        )
+
+        return views_updates, subprocess_result["generated_metrics"]
+
+
+@Step.factory.register()
+class CheckerKLayoutZeroAreaPolygons(MetricChecker):
+    id = "Checker.KLayoutZeroAreaPolygons"
+    name = "KLayout Zero Area Polygons Checker"
+    long_name = "KLayout Zero Area Polygons Checker"
+    deferred = False
+
+    metric_name = "klayout__zero_area_polygons__count"
+    metric_description = "KLayout zero area polygons count"
+
+    error_on_var = Variable(
+        "ERROR_ON_KLAYOUT_ZERO_AREA_POLYGONS",
+        bool,
+        "Checks for zero area polygon violations after KLayout.ZeroAreaPolygons is executed and exits the flow if any was found.",
+        default=True,
+    )
+    config_vars = [error_on_var]
+
+
 class PrecheckFlow(SequentialFlow):
 
     Steps: List[Type[Step]] = [
@@ -184,6 +276,9 @@ class PrecheckFlow(SequentialFlow):
         # Check the density
         KLayout.Density,
         Checker.KLayoutDensity,
+        # Detect zero area polygons
+        ZeroAreaPolygons,
+        CheckerKLayoutZeroAreaPolygons,
         # Run magic DRC
         Magic.DRC,
         Checker.MagicDRC,
