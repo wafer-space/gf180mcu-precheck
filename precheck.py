@@ -30,6 +30,7 @@ from librelane.steps.klayout import KLayoutStep
 from librelane.steps.checker import MetricChecker
 from librelane.flows.flow import FlowError
 
+
 @Step.factory.register()
 class ReadLayout(KLayoutStep):
     """
@@ -116,6 +117,7 @@ class CheckTopLevel(KLayoutStep):
         )
 
         return views_updates, metrics_updates
+
 
 @Step.factory.register()
 class CheckSize(KLayoutStep):
@@ -337,8 +339,11 @@ class PrecheckFlow(SequentialFlow):
 
 def main(input_layout, top_cell, design_dir, die_id, slot):
 
-    PDK_ROOT = os.getenv("PDK_ROOT", os.path.expanduser("~/.ciel"))
+    PDK_ROOT = os.getenv("PDK_ROOT", os.path.expanduser("gf180mcu"))
     PDK = os.getenv("PDK", "gf180mcuD")
+
+    os.environ["PDK_ROOT"] = PDK_ROOT
+    os.environ["PDK"] = PDK
 
     if PDK != "gf180mcuD":
         print(f"Error: Precheck is only supported for gf180mcuD. PDK = {PDK}")
@@ -346,7 +351,7 @@ def main(input_layout, top_cell, design_dir, die_id, slot):
 
     print(f"PDK_ROOT = {PDK_ROOT}")
     print(f"PDK = {PDK}")
-    
+
     if not top_cell:
         top_cell = os.path.splitext(os.path.basename(input_layout))[0]
 
@@ -418,11 +423,18 @@ def main(input_layout, top_cell, design_dir, die_id, slot):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", help="The layout file to check and process.", required=True)
+    parser.add_argument(
+        "--input", help="The layout file to check and process.", required=True
+    )
     parser.add_argument("--top", help="The top-level cell in the layout.")
     parser.add_argument("--id", default="FFFFFFFF", help="The ID to use for this chip.")
     parser.add_argument("--dir", default=".", help="Directory where to run the flow.")
-    parser.add_argument("--slot", default="1x1", choices=["1x1", "0p5x1", "1x0p5", "0p5x0p5"], help="Slot size of the design.")
+    parser.add_argument(
+        "--slot",
+        default="1x1",
+        choices=["1x1", "0p5x1", "1x0p5", "0p5x0p5"],
+        help="Slot size of the design.",
+    )
 
     args = parser.parse_args()
 
