@@ -27,7 +27,7 @@ RUN nix develop --accept-flake-config --profile /nix/var/nix/profiles/dev-profil
 # This ensures all dependencies are properly cached in the profile
 RUN nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/dev-profile --command python3 --version
 
-# Copy Makefile to use for PDK cloning (uses pinned PDK_TAG version)
+# Copy Makefile for PDK cloning (version pinned by PDK_TAG in Makefile)
 COPY Makefile ./
 
 # Clone the PDK into the image using Makefile target
