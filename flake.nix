@@ -54,6 +54,9 @@
           qrcode
           pillow
         ]);
+        extra-packages = with pkgs; [
+          gnumake  # Required for using Makefile in nix environment
+        ];
       }) {};
     });
   };

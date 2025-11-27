@@ -1,0 +1,10 @@
+#!/bin/sh
+# Helper script to run commands inside the nix development environment.
+# With no args: enters interactive nix develop shell
+# With args: runs command inside the nix environment
+
+if [ $# -eq 0 ]; then
+    exec nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/dev-profile
+else
+    exec nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/dev-profile --command "$@"
+fi

@@ -1,6 +1,12 @@
 # Use Nix as the base image for reproducible builds
 FROM nixos/nix:latest
 
+# Image metadata
+LABEL org.opencontainers.image.title="gf180mcu-precheck"
+LABEL org.opencontainers.image.description="Precheck tool for wafer.space MPW runs using the gf180mcu PDK. Validates GDS layouts before fabrication."
+LABEL org.opencontainers.image.usage="docker run --rm --network=none -v \$(pwd)/design:/data ghcr.io/wafer-space/gf180mcu-precheck python precheck.py --input /data/chip_top.gds --top chip_top --dir /data"
+LABEL org.opencontainers.image.source="https://github.com/wafer-space/gf180mcu-precheck"
+
 # Enable flakes and configure binary caches
 RUN echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf && \
     echo "extra-substituters = https://cache.nixos.org https://nix-cache.fossi-foundation.org" >> /etc/nix/nix.conf && \
@@ -21,8 +27,11 @@ RUN nix develop --accept-flake-config --profile /nix/var/nix/profiles/dev-profil
 # This ensures all dependencies are properly cached in the profile
 RUN nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/dev-profile --command python3 --version
 
-# Clone the PDK into the image
-RUN git clone https://github.com/wafer-space/gf180mcu.git /workspace/gf180mcu --depth 1
+# Copy Makefile for PDK cloning (version pinned by PDK_TAG in Makefile)
+COPY Makefile ./
+
+# Clone the PDK into the image using Makefile target
+RUN nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/dev-profile --command make clone-pdk
 
 # Copy the rest of the repository
 COPY . .
@@ -32,10 +41,12 @@ ENV PDK_ROOT=/workspace/gf180mcu
 ENV PDK=gf180mcuD
 ENV PATH=/usr/local/bin:$PATH
 
-# Create a helper script to enter the development environment
-RUN mkdir -p /usr/local/bin && \
-    printf '#!/bin/sh\nexec nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/dev-profile --command "$@"\n' > /usr/local/bin/dev-shell && \
-    chmod +x /usr/local/bin/dev-shell
+# Copy helper script to run commands in the nix development environment
+COPY scripts/dev-shell /usr/local/bin/dev-shell
+RUN chmod +x /usr/local/bin/dev-shell
 
-# Default command: enter the development shell
-CMD ["nix", "develop", "--accept-flake-config", "--offline", "--profile", "/nix/var/nix/profiles/dev-profile"]
+# Use dev-shell as entrypoint so all commands run in the nix environment
+# Users can run: docker run <image> python precheck.py --help
+ENTRYPOINT ["dev-shell"]
+
+# Default: enter interactive nix develop shell (no CMD needed)
