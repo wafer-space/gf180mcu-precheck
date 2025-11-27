@@ -393,7 +393,7 @@ Request
 
 ### API Key Format
 
-- Prefix: `ws_key_` (easily identifiable)
+- Prefix: `ws_key_` (wafer-space key, easily identifiable)
 - Body: 32+ character random string
 - Example: `ws_key_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6`
 
