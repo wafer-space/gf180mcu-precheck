@@ -1,0 +1,29 @@
+# config.example.toml
+# Example configuration for precheck API server
+
+[server]
+host = "0.0.0.0"
+port = 8000
+storage_path = "./data"
+max_concurrent = 1
+upload_expiry_minutes = 15
+
+[docker]
+image = "ghcr.io/wafer-space/gf180mcu-precheck:latest"
+container_prefix = "precheck-"
+
+[auth]
+# Set to true to require API key authentication
+required = false
+
+# IP allowlist (empty = allow all)
+# allowed_ips = ["192.168.1.0/24", "10.0.0.5"]
+
+# API keys (can use ${ENV_VAR} syntax)
+# [[auth.api_keys]]
+# name = "ci-server"
+# key = "ws_key_abc123..."
+#
+# [[auth.api_keys]]
+# name = "from-env"
+# key = "${PRECHECK_API_KEY}"
