@@ -8,7 +8,7 @@ import sys
 import shutil
 import argparse
 
-from typing import List, Type, Tuple
+from typing import List, Type, Tuple, Optional
 
 from librelane.common import Path, get_script_dir, mkdirp
 from librelane.logging import info
@@ -78,6 +78,51 @@ class ReadLayout(KLayoutStep):
         )
 
         views_updates[DesignFormat.GDS] = Path(output_view)
+
+        return views_updates, metrics_updates
+
+
+@Step.factory.register()
+class WriteLayout(KLayoutStep):
+    """
+    Write the layout to an external path.
+    """
+
+    id = "KLayout.WriteLayout"
+    name = "Write the layout"
+
+    inputs = [DesignFormat.GDS]
+    outputs = []
+
+    config_vars = [
+        Variable(
+            "KLAYOUT_WRITE_LAYOUT",
+            Optional[str],
+            "Path to the layout that is read in.",
+        ),
+    ]
+
+    def run(self, state_in: State, **kwargs) -> Tuple[ViewsUpdate, MetricsUpdate]:
+        metrics_updates: MetricsUpdate = {}
+        views_updates: ViewsUpdate = {}
+
+        input_view = state_in[DesignFormat.GDS]
+        output_view = self.config["KLAYOUT_WRITE_LAYOUT"]
+
+        if output_view:
+            self.run_pya_script(
+                [
+                    sys.executable,
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        "scripts",
+                        "klayout",
+                        "read_layout.py",
+                    ),
+                    os.path.abspath(input_view),
+                    os.path.abspath(output_view),
+                ]
+            )
 
         return views_updates, metrics_updates
 
@@ -334,10 +379,12 @@ class PrecheckFlow(SequentialFlow):
         # Run KLayout DRC (filler cells)
         KLayout.DRC,
         Checker.KLayoutDRC,
+        # Write the layout
+        WriteLayout,
     ]
 
 
-def main(input_layout, top_cell, design_dir, die_id, slot):
+def main(input_layout, output_layout, top_cell, design_dir, die_id, slot):
 
     PDK_ROOT = os.getenv("PDK_ROOT", os.path.expanduser("gf180mcu"))
     PDK = os.getenv("PDK", "gf180mcuD")
@@ -362,6 +409,7 @@ def main(input_layout, top_cell, design_dir, die_id, slot):
     flow_cfg = {
         "DESIGN_NAME": top_cell,
         "KLAYOUT_READ_LAYOUT": input_layout,
+        "KLAYOUT_WRITE_LAYOUT": output_layout,
         "KLAYOUT_ID": die_id,
         "KLAYOUT_SLOT": slot,
         # Prevent false positive DRC errors in I/O cells
@@ -426,6 +474,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--input", help="The layout file to check and process.", required=True
     )
+    parser.add_argument("--output", help="The layout file to write.", default=None)
     parser.add_argument("--top", help="The top-level cell in the layout.")
     parser.add_argument("--id", default="FFFFFFFF", help="The ID to use for this chip.")
     parser.add_argument("--dir", default=".", help="Directory where to run the flow.")
@@ -438,4 +487,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    main(args.input, args.top, args.dir, args.id, args.slot)
+    main(args.input, args.output, args.top, args.dir, args.id, args.slot)
