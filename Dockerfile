@@ -45,6 +45,9 @@ ENV PATH=/usr/local/bin:$PATH
 COPY scripts/dev-shell /usr/local/bin/dev-shell
 RUN chmod +x /usr/local/bin/dev-shell
 
+# Verify precheck command works by running --help
+RUN dev-shell python precheck.py --help
+
 # Use dev-shell as entrypoint so all commands run in the nix environment
 # Users can run: docker run <image> python precheck.py --help
 ENTRYPOINT ["dev-shell"]
