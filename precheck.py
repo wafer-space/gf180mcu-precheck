@@ -384,7 +384,7 @@ class PrecheckFlow(SequentialFlow):
     ]
 
 
-def main(input_layout, output_layout, top_cell, design_dir, die_id, slot):
+def main(input_layout, output_layout, top_cell, design_dir, die_id, slot, tag):
 
     PDK_ROOT = os.getenv("PDK_ROOT", os.path.expanduser("gf180mcu"))
     PDK = os.getenv("PDK", "gf180mcuD")
@@ -443,8 +443,9 @@ def main(input_layout, output_layout, top_cell, design_dir, die_id, slot):
             "xdec_*",
             "ypredec*",
             "xpredec*",
-            "xdec8_*",
             "prexdec_*",
+            "xdec8_*",
+            "xdec16_*",
             "xdec32_*",
             "sa_*",
         ],
@@ -460,7 +461,7 @@ def main(input_layout, output_layout, top_cell, design_dir, die_id, slot):
 
     try:
         # Start the flow
-        flow.start()
+        flow.start(tag=tag)
     except FlowError as e:
         print(f"Error: The precheck failed with the following exception: \n{e}")
         sys.exit(1)
@@ -484,7 +485,11 @@ if __name__ == "__main__":
         choices=["1x1", "0p5x1", "1x0p5", "0p5x0p5"],
         help="Slot size of the design.",
     )
+    parser.add_argument(
+        "--run-tag",
+        help="Use a tag for the run directory instead of the timestamp.",
+    )
 
     args = parser.parse_args()
 
-    main(args.input, args.output, args.top, args.dir, args.id, args.slot)
+    main(args.input, args.output, args.top, args.dir, args.id, args.slot, args.run_tag)
