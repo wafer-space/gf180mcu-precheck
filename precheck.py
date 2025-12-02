@@ -400,7 +400,7 @@ def main(input_layout, output_layout, top_cell, design_dir, die_id, slot, tag):
     print(f"PDK = {PDK}")
 
     if not top_cell:
-        top_cell = os.path.splitext(os.path.basename(input_layout))[0]
+        top_cell = os.path.basename(input_layout).split(os.path.extsep)[0]
 
     print(f"Top cell: {top_cell}")
     print(f"Die ID: {die_id}")
