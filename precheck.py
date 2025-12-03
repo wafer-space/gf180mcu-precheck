@@ -373,6 +373,9 @@ class PrecheckFlow(SequentialFlow):
         # Detect zero area polygons
         ZeroAreaPolygons,
         CheckerKLayoutZeroAreaPolygons,
+        # Run KLayout antenna check
+        KLayout.Antenna,
+        Checker.KLayoutAntenna,
         # Run magic DRC
         Magic.DRC,
         Checker.MagicDRC,
