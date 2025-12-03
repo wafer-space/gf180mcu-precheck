@@ -36,6 +36,10 @@ def check_top(
         print("[Error]: Layout origin is not at (0, 0)")
         sys.exit(-1)
 
+    if ly.dbu != 0.001:
+        print("[Error]: Database unit (dbu) is not 0.001um.")
+        sys.exit(-1)
+
     layout_width = ly.top_cell().dbbox().width()
     layout_height = ly.top_cell().dbbox().height()
 
