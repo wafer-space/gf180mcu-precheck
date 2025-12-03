@@ -9,6 +9,7 @@ The precheck performs the following checks:
 - Ensures the `gf180mcu_ws_ip__id` cell exists in the layout. Replaces its contents with a QR code of the `--id` argument.
 - Checks the density of the layout.
 - Ensures there are no zero area polygons in the layout.
+- Runs KLayout antenna check.
 - Runs magic DRC.
 - Runs KLayout DRC.
 
