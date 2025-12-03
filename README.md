@@ -5,7 +5,7 @@ Precheck for wafer.space MPW runs using the gf180mcu PDK
 The precheck performs the following checks:
 
 - Ensures there is only one top-level cell and it matches the `--top` argument.
-- Checks that the origin is at 0, 0 and the dimensions match the selected slot size.
+- Checks that the origin is at (0,0), the dbu is 0.001um and the dimensions match the selected slot size.
 - Ensures the `gf180mcu_ws_ip__id` cell exists in the layout. Replaces its contents with a QR code of the `--id` argument.
 - Checks the density of the layout.
 - Ensures there are no zero area polygons in the layout.
