@@ -387,7 +387,20 @@ class PrecheckFlow(SequentialFlow):
     ]
 
 
-def main(input_layout, output_layout, top_cell, design_dir, die_id, slot, tag):
+def main(
+    input_layout,
+    output_layout,
+    top_cell,
+    design_dir,
+    die_id,
+    slot,
+    tag,
+    last_run,
+    frm,
+    to,
+    skip,
+    with_initial_state,
+):
 
     PDK_ROOT = os.getenv("PDK_ROOT", os.path.expanduser("gf180mcu"))
     PDK = os.getenv("PDK", "gf180mcuD")
@@ -464,7 +477,14 @@ def main(input_layout, output_layout, top_cell, design_dir, die_id, slot, tag):
 
     try:
         # Start the flow
-        flow.start(tag=tag)
+        flow.start(
+            tag=tag,
+            last_run=last_run,
+            frm=frm,
+            to=to,
+            skip=skip,
+            with_initial_state=with_initial_state,
+        )
     except FlowError as e:
         print(f"Error: The precheck failed with the following exception: \n{e}")
         sys.exit(1)
@@ -492,7 +512,43 @@ if __name__ == "__main__":
         "--run-tag",
         help="Use a tag for the run directory instead of the timestamp.",
     )
+    parser.add_argument(
+        "--last-run",
+        help="Use the last run as the run tag.",
+    )
+    parser.add_argument(
+        "--from",
+        help="Start from a step with this id.",
+    )
+    parser.add_argument(
+        "--to",
+        help="Stop at a step with this id.",
+    )
+    parser.add_argument(
+        "--skip",
+        nargs="+",
+        help="Skip these steps.",
+    )
+    parser.add_argument(
+        "--with-initial-state",
+        help="Use this JSON file as an initial state. If this is not specified, the latest `state_out.json` of the run directory will be used. If none exist, an empty initial state is created.",
+    )
 
     args = parser.parse_args()
 
-    main(args.input, args.output, args.top, args.dir, args.id, args.slot, args.run_tag)
+    print(args.skip)
+
+    main(
+        args.input,
+        args.output,
+        args.top,
+        args.dir,
+        args.id,
+        args.slot,
+        args.run_tag,
+        args.last_run,
+        getattr(args, "from", None),
+        args.to,
+        args.skip,
+        args.with_initial_state,
+    )
