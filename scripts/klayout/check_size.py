@@ -32,14 +32,36 @@ def check_top(
     ly = pya.Layout()
     ly.read(input)
 
+    # Check origin
     if ly.top_cell().dbbox().p1 != pya.DPoint(0, 0):
         print("[Error]: Layout origin is not at (0, 0)")
         sys.exit(-1)
 
+    # Check dbu
     if ly.dbu != 0.001:
         print("[Error]: Database unit (dbu) is not 0.001um.")
         sys.exit(-1)
 
+    # Check max metal layer
+    Via5 = pya.LayerInfo(82, 0)
+    MetalTop = pya.LayerInfo(53, 0)
+
+    Via5_region = pya.Region(ly.top_cell().begin_shapes_rec(ly.layer(Via5)))
+    MetalTop_region = pya.Region(ly.top_cell().begin_shapes_rec(ly.layer(MetalTop)))
+
+    if Via5_region.count() > 0:
+        print(
+            f"[Error]: Layer 'Via5' is used. wafers.space uses the 5LM metal stackup."
+        )
+        sys.exit(-1)
+
+    if MetalTop_region.count() > 0:
+        print(
+            f"[Error]: Layer 'MetalTop' is used. wafers.space uses the 5LM metal stackup."
+        )
+        sys.exit(-1)
+
+    # Check layout size
     layout_width = ly.top_cell().dbbox().width()
     layout_height = ly.top_cell().dbbox().height()
 
