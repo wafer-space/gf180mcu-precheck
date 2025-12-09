@@ -52,6 +52,7 @@ def check_top(
         "pixel_height": 142.8 / 21,
         "content": id,
         "pixel_type": "octagon",
+        "metal_level": "Metal1 to Metal5",
     }
     qrcode_cell = ly2.create_cell("qrcode", "gf180mcu_qrcode", param)
 

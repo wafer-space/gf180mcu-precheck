@@ -59,6 +59,7 @@ class qrcode(pya.PCellDeclarationHelper):
         self.metal_handle.add_choice("Metal4", "Metal4")
         self.metal_handle.add_choice("Metal5", "Metal5")
         self.metal_handle.add_choice("MetalTop", "MetalTop")
+        self.metal_handle.add_choice("Metal1 to Metal5", "Metal1 to Metal5")
 
         self.type_handle = self.param(
             "pixel_type",
@@ -106,15 +107,26 @@ class qrcode(pya.PCellDeclarationHelper):
         return pya.DTrans(self.shape.dbbox().left, self.shape.dbbox().bottom)
 
     def produce_impl(self):
-        # Draw the qrcode
-        qrcode_instance = draw_qrcode(
-            self.layout,
-            self.pixel_width,
-            self.pixel_height,
-            self.content,
-            self.metal_level,
-            self.pixel_type,
-        )
+        if self.metal_level == "Metal1 to Metal5":
+            # Draw the qrcode
+            qrcode_instance = draw_qrcode(
+                self.layout,
+                self.pixel_width,
+                self.pixel_height,
+                self.content,
+                ["Metal1", "Metal2", "Metal3", "Metal4", "Metal5"],
+                self.pixel_type,
+            )
+        else:
+            # Draw the qrcode
+            qrcode_instance = draw_qrcode(
+                self.layout,
+                self.pixel_width,
+                self.pixel_height,
+                self.content,
+                [self.metal_level],
+                self.pixel_type,
+            )
 
         self.cell.insert(
             pya.CellInstArray(
