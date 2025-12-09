@@ -432,10 +432,6 @@ def main(
         "MAGIC_GDS_FLATGLOB": [
             # For contacts
             "*_CDNS_*",
-            # COMP and Poly2 filler cells need to be
-            # flattened to form a "filltrans" layer
-            "COMP_fill_cell",
-            "Poly2_fill_cell",
             # Foundry provided SRAMs
             "*$$*",
             "M1_N*",
