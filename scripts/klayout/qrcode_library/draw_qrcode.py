@@ -17,7 +17,7 @@ import qrcode
 from .layers import Layers
 
 
-def draw_qrcode(layout, pixel_width, pixel_height, content, metal_level, pixel_type):
+def draw_qrcode(layout, pixel_width, pixel_height, content, metal_levels, pixel_type):
 
     # Create qrcode cell
     qrcode_cell = layout.cell(layout.add_cell("qrcode"))
@@ -37,24 +37,26 @@ def draw_qrcode(layout, pixel_width, pixel_height, content, metal_level, pixel_t
     pixel_cell = layout.cell(layout.add_cell("qrcode_pixel"))
     if pixel_type == "octagon":
         factor = 0.2
-        pixel_cell.shapes(Layers.by_name(metal_level)).insert(
-            pya.DPolygon(
-                [
-                    pya.DPoint(0 * pixel_width, factor * pixel_height),
-                    pya.DPoint(0 * pixel_width, (1 - factor) * pixel_height),
-                    pya.DPoint(factor * pixel_width, 1 * pixel_height),
-                    pya.DPoint((1 - factor) * pixel_width, 1 * pixel_height),
-                    pya.DPoint(1 * pixel_width, (1 - factor) * pixel_height),
-                    pya.DPoint(1 * pixel_width, factor * pixel_height),
-                    pya.DPoint((1 - factor) * pixel_width, 0 * pixel_height),
-                    pya.DPoint(factor * pixel_width, 0 * pixel_height),
-                ]
+        for metal_level in metal_levels:
+            pixel_cell.shapes(Layers.by_name(metal_level)).insert(
+                pya.DPolygon(
+                    [
+                        pya.DPoint(0 * pixel_width, factor * pixel_height),
+                        pya.DPoint(0 * pixel_width, (1 - factor) * pixel_height),
+                        pya.DPoint(factor * pixel_width, 1 * pixel_height),
+                        pya.DPoint((1 - factor) * pixel_width, 1 * pixel_height),
+                        pya.DPoint(1 * pixel_width, (1 - factor) * pixel_height),
+                        pya.DPoint(1 * pixel_width, factor * pixel_height),
+                        pya.DPoint((1 - factor) * pixel_width, 0 * pixel_height),
+                        pya.DPoint(factor * pixel_width, 0 * pixel_height),
+                    ]
+                )
             )
-        )
     elif pixel_type == "square":
-        pixel_cell.shapes(Layers.by_name(metal_level)).insert(
-            pya.DBox.new(0, 0, pixel_width, pixel_height)
-        )
+        for metal_level in metal_levels:
+            pixel_cell.shapes(Layers.by_name(metal_level)).insert(
+                pya.DBox.new(0, 0, pixel_width, pixel_height)
+            )
 
     width, height = img.size
 
