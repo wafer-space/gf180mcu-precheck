@@ -432,6 +432,11 @@ def main(
         "MAGIC_GDS_FLATGLOB": [
             # For contacts
             "*_CDNS_*",
+            # For dummy COMP and Poly2
+            "COMP_FILL",
+            "COMP_fill_cell",
+            "POLY2_FILL",
+            "Poly2_fill_cell",
             # Foundry provided SRAMs
             "*$$*",
             "M1_N*",
