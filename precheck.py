@@ -428,6 +428,8 @@ def main(
         "KLAYOUT_WRITE_LAYOUT": output_layout,
         "KLAYOUT_ID": die_id,
         "KLAYOUT_SLOT": slot,
+        # Do not error on magic DRC violations
+        "ERROR_ON_MAGIC_DRC": False,
         # Prevent false positive DRC errors in I/O cells
         "MAGIC_GDS_FLATGLOB": [
             # For contacts
