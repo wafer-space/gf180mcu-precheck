@@ -34,3 +34,18 @@ Now run the precheck with your layout:
 ```
 python3 precheck.py --input chip_top.gds
 ```
+
+> [!NOTE]
+> If your top-level cell name does not match the file name, you need to specify it using the `--top` argument:
+>
+> ```
+> python3 precheck.py --input chip_top.gds --top my_top_cell
+> ```
+>
+> If you use a slot size other than 1x1, you need to specify it using the `--slot` argument:
+>
+> ```
+> python3 precheck.py --input chip_top.gds --slot 0p5x0p5
+> ```
+>
+> The valid slot sizes are: `1x1`, `0p5x1`, `1x0p5`, `0p5x0p5`.
