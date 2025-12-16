@@ -23,12 +23,14 @@ def check_top(
         print(f"[Error] More than one top-level cell in {input}!")
         sys.exit(1)
 
-    if not ly.top_cell():
+    if ly.top_cell() == None:
         print(f"[Error] No top-level cell in {input}!")
         sys.exit(1)
 
     if ly.top_cell().name != top:
-        print(f"[Error] No top-level cell in {input}!")
+        print(
+            f"[Error] Top-level cell name '{ly.top_cell().name}' does not match expected name '{top}'!"
+        )
         sys.exit(1)
 
     print(f"Design name '{top}' matches top-level cell in {input}.")
