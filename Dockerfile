@@ -56,14 +56,15 @@ RUN nix develop --accept-flake-config --profile /nix/var/nix/profiles/dev-profil
 RUN nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/dev-profile --command python3 --version
 
 # Extract and store runtime tool versions (captured at build time)
-RUN nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/dev-profile --command bash -c '\
-    mkdir -p /etc/gf180mcu-precheck && \
-    echo "{" > /etc/gf180mcu-precheck/tool-versions.json && \
-    echo "  \"klayout\": \"$(klayout -v | head -1 | sed s/KLayout.//)\","  >> /etc/gf180mcu-precheck/tool-versions.json && \
-    echo "  \"magic\": \"$(magic --version | head -1)\","  >> /etc/gf180mcu-precheck/tool-versions.json && \
-    echo "  \"python\": \"$(python3 --version | sed s/Python.//)\""  >> /etc/gf180mcu-precheck/tool-versions.json && \
-    echo "}" >> /etc/gf180mcu-precheck/tool-versions.json && \
-    cat /etc/gf180mcu-precheck/tool-versions.json'
+# Using Python to avoid shell quoting issues with JSON
+RUN nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/dev-profile --command python3 -c "\
+import json, subprocess, re, pathlib; \
+pathlib.Path('/etc/gf180mcu-precheck').mkdir(parents=True, exist_ok=True); \
+klayout = subprocess.run(['klayout', '-v'], capture_output=True, text=True).stdout.split()[1]; \
+magic = subprocess.run(['magic', '--version'], capture_output=True, text=True).stdout.strip(); \
+python = subprocess.run(['python3', '--version'], capture_output=True, text=True).stdout.split()[1]; \
+pathlib.Path('/etc/gf180mcu-precheck/tool-versions.json').write_text(json.dumps({'klayout': klayout, 'magic': magic, 'python': python}, indent=2)); \
+print(pathlib.Path('/etc/gf180mcu-precheck/tool-versions.json').read_text())"
 
 # Copy Makefile for PDK cloning (version pinned by PDK_TAG in Makefile)
 COPY Makefile ./
@@ -75,12 +76,8 @@ RUN nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/
 COPY . .
 
 # Store flake input versions from build args (if provided)
-RUN echo "{" > /etc/gf180mcu-precheck/flake-inputs.json && \
-    echo "  \"nix-eda\": {\"ref\": \"${NIX_EDA_REF}\", \"rev\": \"${NIX_EDA_REV}\"}," >> /etc/gf180mcu-precheck/flake-inputs.json && \
-    echo "  \"librelane\": {\"ref\": \"${LIBRELANE_REF}\", \"rev\": \"${LIBRELANE_REV}\"}," >> /etc/gf180mcu-precheck/flake-inputs.json && \
-    echo "  \"nixpkgs\": {\"ref\": \"${NIXPKGS_REF}\", \"rev\": \"${NIXPKGS_REV}\"}," >> /etc/gf180mcu-precheck/flake-inputs.json && \
-    echo "  \"ciel\": {\"rev\": \"${CIEL_REV}\"}" >> /etc/gf180mcu-precheck/flake-inputs.json && \
-    echo "}" >> /etc/gf180mcu-precheck/flake-inputs.json
+# Using Python to avoid shell quoting issues with JSON
+RUN python3 -c "import json; print(json.dumps({'nix-eda': {'ref': '${NIX_EDA_REF}', 'rev': '${NIX_EDA_REV}'}, 'librelane': {'ref': '${LIBRELANE_REF}', 'rev': '${LIBRELANE_REV}'}, 'nixpkgs': {'ref': '${NIXPKGS_REF}', 'rev': '${NIXPKGS_REV}'}, 'ciel': {'rev': '${CIEL_REV}'}}, indent=2))" > /etc/gf180mcu-precheck/flake-inputs.json
 
 # Set up environment variables
 ENV PDK_ROOT=/workspace/gf180mcu
