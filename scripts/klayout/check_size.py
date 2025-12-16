@@ -61,6 +61,18 @@ def check_top(
         )
         sys.exit(-1)
 
+    # Check sealring exists
+    GUARD_RING_MK = pya.LayerInfo(167, 5)
+    GUARD_RING_MK_region = pya.Region(
+        ly.top_cell().begin_shapes_rec(ly.layer(GUARD_RING_MK))
+    )
+
+    if GUARD_RING_MK_region.count() == 0:
+        print(
+            f"[Error]: Layer 'GUARD_RING_MK' is not used. wafers.space requires a seal ring (guard ring) around the die."
+        )
+        sys.exit(-1)
+
     # Check layout size
     layout_width = ly.top_cell().dbbox().width()
     layout_height = ly.top_cell().dbbox().height()
