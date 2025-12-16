@@ -76,8 +76,12 @@ RUN nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/
 COPY . .
 
 # Store flake input versions from build args (if provided)
-# Using Python to avoid shell quoting issues with JSON
-RUN python3 -c "import json; print(json.dumps({'nix-eda': {'ref': '${NIX_EDA_REF}', 'rev': '${NIX_EDA_REV}'}, 'librelane': {'ref': '${LIBRELANE_REF}', 'rev': '${LIBRELANE_REV}'}, 'nixpkgs': {'ref': '${NIXPKGS_REF}', 'rev': '${NIXPKGS_REV}'}, 'ciel': {'rev': '${CIEL_REV}'}}, indent=2))" > /etc/gf180mcu-precheck/flake-inputs.json
+# Using nix develop to get Python and avoid shell quoting issues with JSON
+RUN nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/dev-profile --command python3 -c "\
+import json, pathlib; \
+data = {'nix-eda': {'ref': '${NIX_EDA_REF}', 'rev': '${NIX_EDA_REV}'}, 'librelane': {'ref': '${LIBRELANE_REF}', 'rev': '${LIBRELANE_REV}'}, 'nixpkgs': {'ref': '${NIXPKGS_REF}', 'rev': '${NIXPKGS_REV}'}, 'ciel': {'rev': '${CIEL_REV}'}}; \
+pathlib.Path('/etc/gf180mcu-precheck/flake-inputs.json').write_text(json.dumps(data, indent=2)); \
+print(pathlib.Path('/etc/gf180mcu-precheck/flake-inputs.json').read_text())"
 
 # Set up environment variables
 ENV PDK_ROOT=/workspace/gf180mcu
