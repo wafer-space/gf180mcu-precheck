@@ -1,0 +1,62 @@
+#!/bin/sh
+# Output version information for gf180mcu-precheck container.
+# Usage: version-info [--json]
+#
+# Displays tool versions and Nix flake input versions.
+# With --json: outputs combined JSON
+# Without args: outputs human-readable format
+
+VERSION_DIR="/etc/gf180mcu-precheck"
+TOOL_VERSIONS="$VERSION_DIR/tool-versions.json"
+FLAKE_INPUTS="$VERSION_DIR/flake-inputs.json"
+
+if [ "$1" = "--json" ]; then
+    # Output combined JSON
+    echo "{"
+    echo "  \"tools\": $(cat "$TOOL_VERSIONS"),"
+    echo "  \"flake_inputs\": $(cat "$FLAKE_INPUTS")"
+    echo "}"
+else
+    # Human-readable output
+    echo "=== gf180mcu-precheck Version Info ==="
+    echo ""
+    echo "Tool Versions:"
+    if [ -f "$TOOL_VERSIONS" ]; then
+        # Parse JSON and display nicely (portable approach using sed/grep)
+        klayout=$(grep '"klayout"' "$TOOL_VERSIONS" | sed 's/.*: *"\([^"]*\)".*/\1/')
+        magic=$(grep '"magic"' "$TOOL_VERSIONS" | sed 's/.*: *"\([^"]*\)".*/\1/')
+        python=$(grep '"python"' "$TOOL_VERSIONS" | sed 's/.*: *"\([^"]*\)".*/\1/')
+        echo "  KLayout: $klayout"
+        echo "  Magic:   $magic"
+        echo "  Python:  $python"
+    else
+        echo "  (not available)"
+    fi
+    echo ""
+    echo "Nix Flake Inputs:"
+    if [ -f "$FLAKE_INPUTS" ]; then
+        # Extract and display each input
+        nix_eda_ref=$(grep -A1 '"nix-eda"' "$FLAKE_INPUTS" | grep '"ref"' | sed 's/.*: *"\([^"]*\)".*/\1/')
+        nix_eda_rev=$(grep -A1 '"nix-eda"' "$FLAKE_INPUTS" | grep '"rev"' | sed 's/.*: *"\([^"]*\)".*/\1/')
+        librelane_ref=$(grep -A1 '"librelane"' "$FLAKE_INPUTS" | grep '"ref"' | sed 's/.*: *"\([^"]*\)".*/\1/')
+        librelane_rev=$(grep -A1 '"librelane"' "$FLAKE_INPUTS" | grep '"rev"' | sed 's/.*: *"\([^"]*\)".*/\1/')
+        nixpkgs_ref=$(grep -A1 '"nixpkgs"' "$FLAKE_INPUTS" | grep '"ref"' | sed 's/.*: *"\([^"]*\)".*/\1/')
+        nixpkgs_rev=$(grep -A1 '"nixpkgs"' "$FLAKE_INPUTS" | grep '"rev"' | sed 's/.*: *"\([^"]*\)".*/\1/')
+        ciel_rev=$(grep -A1 '"ciel"' "$FLAKE_INPUTS" | grep '"rev"' | sed 's/.*: *"\([^"]*\)".*/\1/')
+
+        if [ -n "$nix_eda_ref" ] || [ -n "$nix_eda_rev" ]; then
+            echo "  nix-eda:   ${nix_eda_ref:-<branch>} @ ${nix_eda_rev:-<unknown>}"
+        fi
+        if [ -n "$librelane_ref" ] || [ -n "$librelane_rev" ]; then
+            echo "  librelane: ${librelane_ref:-<branch>} @ ${librelane_rev:-<unknown>}"
+        fi
+        if [ -n "$nixpkgs_ref" ] || [ -n "$nixpkgs_rev" ]; then
+            echo "  nixpkgs:   ${nixpkgs_ref:-<branch>} @ ${nixpkgs_rev:-<unknown>}"
+        fi
+        if [ -n "$ciel_rev" ]; then
+            echo "  ciel:      @ ${ciel_rev}"
+        fi
+    else
+        echo "  (not available)"
+    fi
+fi

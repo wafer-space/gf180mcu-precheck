@@ -1,11 +1,39 @@
 # Use Nix as the base image for reproducible builds
 FROM nixos/nix:latest
 
-# Image metadata
+# Build arguments for version information (populated by CI from flake.lock)
+ARG NIX_EDA_REF=""
+ARG NIX_EDA_REV=""
+ARG LIBRELANE_REF=""
+ARG LIBRELANE_REV=""
+ARG NIXPKGS_REF=""
+ARG NIXPKGS_REV=""
+ARG CIEL_REV=""
+ARG KLAYOUT_VERSION=""
+ARG MAGIC_VERSION=""
+ARG PYTHON_VERSION=""
+
+# Image metadata - standard OCI labels
 LABEL org.opencontainers.image.title="gf180mcu-precheck"
 LABEL org.opencontainers.image.description="Precheck tool for wafer.space MPW runs using the gf180mcu PDK. Validates GDS layouts before fabrication."
 LABEL org.opencontainers.image.usage="docker run --rm --network=none -v \$(pwd)/design:/data ghcr.io/wafer-space/gf180mcu-precheck python precheck.py --input /data/chip_top.gds --top chip_top --dir /data"
 LABEL org.opencontainers.image.source="https://github.com/wafer-space/gf180mcu-precheck"
+
+# Nix flake input versions - fossi-foundation packages
+LABEL org.fossi-foundation.nix-eda.ref="${NIX_EDA_REF}"
+LABEL org.fossi-foundation.nix-eda.rev="${NIX_EDA_REV}"
+LABEL org.fossi-foundation.ciel.rev="${CIEL_REV}"
+
+# Nix flake input versions - other inputs
+LABEL org.librelane.librelane.ref="${LIBRELANE_REF}"
+LABEL org.librelane.librelane.rev="${LIBRELANE_REV}"
+LABEL org.nixos.nixpkgs.ref="${NIXPKGS_REF}"
+LABEL org.nixos.nixpkgs.rev="${NIXPKGS_REV}"
+
+# Runtime tool versions
+LABEL space.wafer.klayout.version="${KLAYOUT_VERSION}"
+LABEL space.wafer.magic.version="${MAGIC_VERSION}"
+LABEL space.wafer.python.version="${PYTHON_VERSION}"
 
 # Enable flakes and configure binary caches
 RUN echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf && \
@@ -27,6 +55,16 @@ RUN nix develop --accept-flake-config --profile /nix/var/nix/profiles/dev-profil
 # This ensures all dependencies are properly cached in the profile
 RUN nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/dev-profile --command python3 --version
 
+# Extract and store runtime tool versions (captured at build time)
+RUN nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/dev-profile --command bash -c '\
+    mkdir -p /etc/gf180mcu-precheck && \
+    echo "{" > /etc/gf180mcu-precheck/tool-versions.json && \
+    echo "  \"klayout\": \"$(klayout -v | head -1 | sed s/KLayout.//)\","  >> /etc/gf180mcu-precheck/tool-versions.json && \
+    echo "  \"magic\": \"$(magic --version | head -1)\","  >> /etc/gf180mcu-precheck/tool-versions.json && \
+    echo "  \"python\": \"$(python3 --version | sed s/Python.//)\""  >> /etc/gf180mcu-precheck/tool-versions.json && \
+    echo "}" >> /etc/gf180mcu-precheck/tool-versions.json && \
+    cat /etc/gf180mcu-precheck/tool-versions.json'
+
 # Copy Makefile for PDK cloning (version pinned by PDK_TAG in Makefile)
 COPY Makefile ./
 
@@ -36,14 +74,23 @@ RUN nix develop --accept-flake-config --offline --profile /nix/var/nix/profiles/
 # Copy the rest of the repository
 COPY . .
 
+# Store flake input versions from build args (if provided)
+RUN echo "{" > /etc/gf180mcu-precheck/flake-inputs.json && \
+    echo "  \"nix-eda\": {\"ref\": \"${NIX_EDA_REF}\", \"rev\": \"${NIX_EDA_REV}\"}," >> /etc/gf180mcu-precheck/flake-inputs.json && \
+    echo "  \"librelane\": {\"ref\": \"${LIBRELANE_REF}\", \"rev\": \"${LIBRELANE_REV}\"}," >> /etc/gf180mcu-precheck/flake-inputs.json && \
+    echo "  \"nixpkgs\": {\"ref\": \"${NIXPKGS_REF}\", \"rev\": \"${NIXPKGS_REV}\"}," >> /etc/gf180mcu-precheck/flake-inputs.json && \
+    echo "  \"ciel\": {\"rev\": \"${CIEL_REV}\"}" >> /etc/gf180mcu-precheck/flake-inputs.json && \
+    echo "}" >> /etc/gf180mcu-precheck/flake-inputs.json
+
 # Set up environment variables
 ENV PDK_ROOT=/workspace/gf180mcu
 ENV PDK=gf180mcuD
 ENV PATH=/usr/local/bin:$PATH
 
-# Copy helper script to run commands in the nix development environment
+# Copy helper scripts
 COPY scripts/dev-shell /usr/local/bin/dev-shell
-RUN chmod +x /usr/local/bin/dev-shell
+COPY scripts/version-info /usr/local/bin/version-info
+RUN chmod +x /usr/local/bin/dev-shell /usr/local/bin/version-info
 
 # Verify precheck command works by running --help
 RUN dev-shell python precheck.py --help
