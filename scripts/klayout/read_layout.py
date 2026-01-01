@@ -22,13 +22,18 @@ def check_top(
     options = pya.LoadLayoutOptions()
     lm = pya.LayerMap()
 
-    # Dummy metal and poly to active metal and poly
-    lm.map(pya.LayerInfo(30, 4), 0, pya.LayerInfo(30, 0))
-    lm.map(pya.LayerInfo(34, 4), 1, pya.LayerInfo(34, 0))
-    lm.map(pya.LayerInfo(36, 4), 2, pya.LayerInfo(36, 0))
-    lm.map(pya.LayerInfo(42, 4), 3, pya.LayerInfo(42, 0))
-    lm.map(pya.LayerInfo(46, 4), 4, pya.LayerInfo(46, 0))
-    lm.map(pya.LayerInfo(81, 4), 5, pya.LayerInfo(81, 0))
+    # Dummy comp to active comp
+    lm.map(pya.LayerInfo(22, 4), 0, pya.LayerInfo(22, 0))
+
+    # Dummy poly2 to active poly2
+    lm.map(pya.LayerInfo(30, 4), 1, pya.LayerInfo(30, 0))
+
+    # Dummy metal to active metal
+    lm.map(pya.LayerInfo(34, 4), 2, pya.LayerInfo(34, 0))
+    lm.map(pya.LayerInfo(36, 4), 3, pya.LayerInfo(36, 0))
+    lm.map(pya.LayerInfo(42, 4), 4, pya.LayerInfo(42, 0))
+    lm.map(pya.LayerInfo(46, 4), 5, pya.LayerInfo(46, 0))
+    lm.map(pya.LayerInfo(81, 4), 6, pya.LayerInfo(81, 0))
 
     options.set_layer_map(lm, True)
 
