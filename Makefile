@@ -5,7 +5,7 @@ TOP = chip_top
 
 PDK_ROOT ?= $(MAKEFILE_DIR)/gf180mcu
 PDK ?= gf180mcuD
-PDK_TAG ?= 1.6.6
+PDK_COMMIT ?= f3b5e46babb6b417f9a1a1b5c413f7dda6f68a51
 
 .DEFAULT_GOAL := help
 
@@ -19,7 +19,8 @@ help: ## Show this help message
 all: clone-pdk ## Default target
 .PHONY: all
 
-clone-pdk: ## Clone the gf180mcu PDK repository
-	rm -rf $(MAKEFILE_DIR)/gf180mcu
-	git clone https://github.com/wafer-space/gf180mcu.git $(MAKEFILE_DIR)/gf180mcu --depth 1 --branch ${PDK_TAG}
+$(PDK_ROOT)/$(PDK):
+	ciel enable $(PDK_COMMIT) --pdk-root $(PDK_ROOT) --pdk-family $(PDK)
+
+clone-pdk: $(PDK_ROOT)/$(PDK) ## Clone the gf180mcu PDK
 .PHONY: clone-pdk

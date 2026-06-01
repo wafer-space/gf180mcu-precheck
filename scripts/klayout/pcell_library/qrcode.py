@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pya
 from .draw_qrcode import *
 
 default_width = 10

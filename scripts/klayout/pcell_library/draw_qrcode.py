@@ -82,14 +82,10 @@ def draw_qrcode(layout, pixel_width, pixel_height, content, metal_levels, pixel_
                 print("  ", end="")
         print("")
 
-    # No metal fill
-    qrcode_cell.shapes(Layers.PMNDMY).insert(
-        pya.DBox.new(0, 0, pixel_width * width, pixel_height * height)
-    )
-
-    # Add boundary
-    qrcode_cell.shapes(Layers.PR_bndry).insert(
-        pya.DBox.new(0, 0, pixel_width * width, pixel_height * height)
-    )
+    # Add nofill layer and boundary
+    for layer in [Layers.PR_bndry, Layers.PMNDMY]:
+        qrcode_cell.shapes(layer).insert(
+            pya.DBox.new(0, 0, pixel_width * width, pixel_height * height)
+        )
 
     return qrcode_cell
