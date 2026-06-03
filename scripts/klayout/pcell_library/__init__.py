@@ -14,20 +14,22 @@
 
 import pya
 
-from .qrcode import *
+from .layers import Layers
+from .qrcode import qrcode
+from .marker import marker
 
-
-class gf180mcu_qrcode(pya.Library):
+class gf180mcu_ws_pcells(pya.Library):
     """
     Qr code library
     """
 
     def __init__(self):
         # Set the description
-        self.description = "GF180MCU QR code"
+        self.description = "GF180MCU Wafer Space PCells"
 
         # Create the PCell declaration
         self.layout().register_pcell("qrcode", qrcode())
+        self.layout().register_pcell("marker", marker())
 
-        # Register us with the name "gf180mcu_qrcode".
-        self.register("gf180mcu_qrcode")
+        # Register with the name "gf180mcu_qrcode".
+        self.register("gf180mcu_ws_pcells")

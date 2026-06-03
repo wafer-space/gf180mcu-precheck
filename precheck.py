@@ -8,7 +8,7 @@ import sys
 import shutil
 import argparse
 
-from typing import List, Type, Tuple, Optional
+from typing import List, Type, Tuple, Optional, Literal
 
 from librelane.common import Path, get_script_dir, mkdirp
 from librelane.logging import info
@@ -30,6 +30,23 @@ from librelane.steps.klayout import KLayoutStep
 from librelane.steps.checker import MetricChecker
 from librelane.flows.flow import FlowError
 
+ws_config_vars = [
+    Variable(
+        "WS_ID",
+        str,
+        "The wafer.space ID for the die.",
+    ),
+    Variable(
+        "WS_SLOT",
+        Literal["1x1", "0p5x1", "1x0p5", "0p5x0p5"],
+        "The slot size of the design.",
+    ),
+    Variable(
+        "WS_COB",
+        bool,
+        "True if the CoB (Chip-on-Board) packaging option is selected.",
+    ),
+]
 
 @Step.factory.register()
 class ReadLayout(KLayoutStep):
@@ -176,13 +193,7 @@ class CheckSize(KLayoutStep):
     inputs = [DesignFormat.GDS]
     outputs = []
 
-    config_vars = [
-        Variable(
-            "KLAYOUT_SLOT",
-            str,
-            "The slot size of the design in order to check the dimensions.",
-        ),
-    ]
+    config_vars = ws_config_vars
 
     def run(self, state_in: State, **kwargs) -> Tuple[ViewsUpdate, MetricsUpdate]:
         metrics_updates: MetricsUpdate = {}
@@ -202,7 +213,7 @@ class CheckSize(KLayoutStep):
                 ),
                 os.path.abspath(input_view),
                 "--slot",
-                self.config["KLAYOUT_SLOT"],
+                self.config["WS_SLOT"],
             ]
         )
 
@@ -221,13 +232,7 @@ class GenerateID(KLayoutStep):
     inputs = [DesignFormat.GDS]
     outputs = [DesignFormat.GDS]
 
-    config_vars = [
-        Variable(
-            "KLAYOUT_ID",
-            str,
-            "The ID to generate.",
-        ),
-    ]
+    config_vars = ws_config_vars
 
     def run(self, state_in: State, **kwargs) -> Tuple[ViewsUpdate, MetricsUpdate]:
         metrics_updates: MetricsUpdate = {}
@@ -253,7 +258,9 @@ class GenerateID(KLayoutStep):
                 os.path.abspath(input_view),
                 os.path.abspath(output_view),
                 "--id",
-                self.config["KLAYOUT_ID"],
+                self.config["WS_ID"],
+                "--cob",
+                self.config["WS_COB"],
             ]
         )
 
@@ -393,7 +400,10 @@ def main(
     top_cell,
     design_dir,
     die_id,
+    cob,
     slot,
+    threads,
+    workers,
     tag,
     last_run,
     frm,
@@ -418,18 +428,30 @@ def main(
     if not top_cell:
         top_cell = os.path.basename(input_layout).split(os.path.extsep)[0]
 
-    print(f"Top cell: {top_cell}")
-    print(f"Die ID: {die_id}")
-    print(f"Slot: {slot}")
+    print(f"top_cell: {top_cell}")
+    print(f"die_id: {die_id}")
+    print(f"cob: {cob}")
+    print(f"slot: {slot}")
+    print(f"threads: {threads}")
+    print(f"workers: {workers}")
+    
+    if threads == "max":
+        threads = os.cpu_count() or 1
+    else:
+        threads = int(threads)
 
     flow_cfg = {
         "DESIGN_NAME": top_cell,
         "KLAYOUT_READ_LAYOUT": input_layout,
         "KLAYOUT_WRITE_LAYOUT": output_layout,
-        "KLAYOUT_ID": die_id,
-        "KLAYOUT_SLOT": slot,
+        
+        "WS_ID": die_id,
+        "WS_SLOT": slot,
+        "WS_COB": cob,
+        
         # Do not error on magic DRC violations
         "ERROR_ON_MAGIC_DRC": False,
+
         # Prevent false positive DRC errors in I/O cells
         "MAGIC_GDS_FLATGLOB": [
             # For contacts
@@ -468,6 +490,27 @@ def main(
             "xdec32_*",
             "sa_*",
         ],
+        
+        "KLAYOUT_DRC_THREADS": threads,
+        
+        # "max" equals max hardware threads
+        "KLAYOUT_DRC_OPTIONS": {
+          "decks": "all,-antenna,-density,-cup", # disable CUP for now
+          "variant": PDK,
+          "workers": workers,
+        },
+
+        "KLAYOUT_DENSITY_OPTIONS": {
+          "decks": "density",
+          "variant": PDK,
+          "workers": workers,
+        },
+
+        "KLAYOUT_ANTENNA_OPTIONS": {
+          "decks": "antenna",
+          "variant": PDK,
+          "workers": workers,
+        },
     }
 
     # Run flow
@@ -504,7 +547,10 @@ if __name__ == "__main__":
     parser.add_argument("--output", help="The layout file to write.", default=None)
     parser.add_argument("--top", help="The top-level cell in the layout.")
     parser.add_argument("--id", default="FFFFFFFF", help="The ID to use for this chip.")
+    parser.add_argument("--cob", action="store_true", help="Use the CoB (Chip-On-Board) packaging option (extra checks).")
     parser.add_argument("--dir", default=".", help="Directory where to run the flow.")
+    parser.add_argument("--threads", default="max", help="Number of threads to use. Integer or 'max'.")
+    parser.add_argument("--workers", default=1, help="Number of workers to use. Integer or 'max'.")
     parser.add_argument(
         "--slot",
         default="1x1",
@@ -547,7 +593,10 @@ if __name__ == "__main__":
         args.top,
         args.dir,
         args.id,
+        args.cob,
         args.slot,
+        args.threads,
+        args.workers,
         args.run_tag,
         args.last_run,
         getattr(args, "from", None),

@@ -1,12 +1,15 @@
 # gf180mcu Precheck
 
-Precheck for wafer.space MPW runs using the gf180mcu PDK
+Precheck for wafer.space MPW runs using the gf180mcu PDK.
 
 The precheck performs the following checks:
 
 - Ensures there is only one top-level cell and it matches the `--top` argument.
-- Checks that the origin is at (0,0), the dbu is 0.001um, the max metal layer, and the dimensions match the selected slot size.
-- Ensures the `gf180mcu_ws_ip__id` cell exists in the layout. Replaces its contents with a QR code of the `--id` argument.
+- Checks that the origin is at (0,0), the dbu is 0.001um, the max metal layer is Metal5, and the dimensions match the selected slot size.
+- If the CoB switch is selected:
+  - Ensures the `gf180mcu_ws_ip__qrcode_id`, `gf180mcu_ws_ip__shuttle_id`, `gf180mcu_ws_ip__project_id` and `gf180mcu_ws_ip__marker` cells exists in the layout.
+  - Ensures there is only one instance of each and their location is as in the project template.
+  - Replaces their contents with the value of the `--id` argument.
 - Checks the density of the layout.
 - Ensures there are no zero area polygons in the layout.
 - Runs KLayout antenna check.
@@ -16,6 +19,8 @@ The precheck performs the following checks:
 ## Prerequisites
 
 Install LibreLane by following the Nix-based installation instructions: https://librelane.readthedocs.io/en/latest/getting_started/common/nix_installation/index.html
+
+Enable a shell with all tools: `nix-shell`
 
 Clone the PDK with: `make clone-pdk`.
 
@@ -41,11 +46,28 @@ python3 precheck.py --input chip_top.gds
 > ```
 > python3 precheck.py --input chip_top.gds --top my_top_cell
 > ```
->
+
+> [!NOTE]
 > If you use a slot size other than 1x1, you need to specify it using the `--slot` argument:
 >
 > ```
 > python3 precheck.py --input chip_top.gds --slot 0p5x0p5
 > ```
->
 > The valid slot sizes are: `1x1`, `0p5x1`, `1x0p5`, `0p5x0p5`.
+
+> [!NOTE]
+>
+> If you want to use the CoB (Chip-On-Board) packaging option, pass `--cob`.
+>
+> ```
+> python3 precheck.py --input chip_top.gds --cob
+> ```
+
+> [!NOTE]
+> To speed up KLayout DRC check, you can change the number of threads vs the number of workers.
+> A high number of workers increases RAM usage, but can significantly improve the performance.
+> workers * threads should equal the available hardware threads for a best possible utilization.
+>
+> ```
+> python3 precheck.py --input chip_top.gds --threads 1 --workers max
+> ```
