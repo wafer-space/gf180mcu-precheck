@@ -8,3 +8,6 @@ gf180_drc.lyrdb
 
 # Claude Code local settings
 .claude/
+
+# Git worktrees
+.worktrees/
