@@ -24,3 +24,17 @@ $(PDK_ROOT)/$(PDK):
 
 clone-pdk: $(PDK_ROOT)/$(PDK) ## Clone the gf180mcu PDK
 .PHONY: clone-pdk
+
+gf180mcu-example-layouts:
+	git clone https://github.com/wafer-space/gf180mcu-example-layouts.git
+
+clone-layouts: gf180mcu-example-layouts
+.PHONY: clone-layouts
+
+precheck: clone-pdk clone-layouts
+	python3 precheck.py --slot ${SLOT} --cob --input gf180mcu-example-layouts/${DOMAIN}/${SLOT}/${TOP}.oas --id DEADBEEF --workers max --threads 1 --output ${TOP}.oas
+.PHONY: precheck
+
+precheck-no-cob: clone-pdk clone-layouts
+	python3 precheck.py --slot ${SLOT} --input gf180mcu-example-layouts/${DOMAIN}/${SLOT}/${TOP}.oas --id DEADBEEF --workers max --threads 1 --output ${TOP}.oas
+.PHONY: precheck-no-cob
