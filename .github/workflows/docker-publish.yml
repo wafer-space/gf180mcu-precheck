@@ -48,6 +48,12 @@ jobs:
           echo "value=$PREFIX" >> $GITHUB_OUTPUT
           echo "Generated SHA tag prefix: $PREFIX"
 
+      - name: Extract Nix flake versions
+        id: nix_versions
+        run: |
+          # Extract version info from flake.lock (no nix required)
+          python3 scripts/extract-versions.py --flake-only --github-output >> $GITHUB_OUTPUT
+
       # Check if token can write to GitHub Actions cache (needed for cache-to)
       - name: Check token permissions for GHA cache
         id: gha_cache_permissions
@@ -92,5 +98,13 @@ jobs:
           push: ${{ github.event_name != 'pull_request' && github.repository == 'wafer-space/gf180mcu-precheck' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NIX_EDA_REF=${{ steps.nix_versions.outputs.nix_eda_ref }}
+            NIX_EDA_REV=${{ steps.nix_versions.outputs.nix_eda_rev }}
+            LIBRELANE_REF=${{ steps.nix_versions.outputs.librelane_ref }}
+            LIBRELANE_REV=${{ steps.nix_versions.outputs.librelane_rev }}
+            NIXPKGS_REF=${{ steps.nix_versions.outputs.nixpkgs_ref }}
+            NIXPKGS_REV=${{ steps.nix_versions.outputs.nixpkgs_rev }}
+            CIEL_REV=${{ steps.nix_versions.outputs.ciel_rev }}
           cache-from: type=gha
           cache-to: ${{ steps.gha_cache_permissions.outputs.can_write == 'true' && 'type=gha,mode=max' || '' }}
