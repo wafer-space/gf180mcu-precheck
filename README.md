@@ -10,6 +10,7 @@ The precheck performs the following checks:
   - Ensures the `gf180mcu_ws_ip__qrcode_id`, `gf180mcu_ws_ip__shuttle_id`, `gf180mcu_ws_ip__project_id` and `gf180mcu_ws_ip__marker` cells exists in the layout.
   - Ensures there is only one instance of each and their location is as in the project template.
   - Replaces their contents with the value of the `--id` argument.
+  - Checks that the pad openings match the pad mask for the selected slot. Additional pad openings are possible.
 - Checks the density of the layout.
 - Ensures there are no zero area polygons in the layout.
 - Runs KLayout antenna check.
@@ -34,10 +35,16 @@ Export the environment variables:
 export PDK_ROOT=gf180mcu && export PDK=gf180mcuD
 ```
 
-Now run the precheck with your layout:
+Now run the precheck with your layout (supported file formats are `.gds`, `.gds.gz`, `.oas`):
 
 ```
 python3 precheck.py --input chip_top.gds
+```
+
+You can also specify where to save the output layout:
+
+```
+python3 precheck.py --input chip_top.gds --output chip_top.oas
 ```
 
 > [!NOTE]

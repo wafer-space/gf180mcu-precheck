@@ -6,5 +6,8 @@ gf180_drc.lyrdb
 *.gds.gz
 *.oas
 
+# Examply layouts
+gf180mcu-example-layouts/
+
 # Claude Code local settings
 .claude/

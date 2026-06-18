@@ -48,6 +48,7 @@ ws_config_vars = [
     ),
 ]
 
+
 @Step.factory.register()
 class ReadLayout(KLayoutStep):
     """
@@ -55,7 +56,7 @@ class ReadLayout(KLayoutStep):
     """
 
     id = "KLayout.ReadLayout"
-    name = "Read in the layout"
+    name = "Read the Layout"
 
     inputs = []
     outputs = [DesignFormat.GDS]
@@ -106,7 +107,7 @@ class WriteLayout(KLayoutStep):
     """
 
     id = "KLayout.WriteLayout"
-    name = "Write the layout"
+    name = "Write the Layout"
 
     inputs = [DesignFormat.GDS]
     outputs = []
@@ -134,7 +135,7 @@ class WriteLayout(KLayoutStep):
                         os.path.dirname(__file__),
                         "scripts",
                         "klayout",
-                        "read_layout.py",
+                        "read_write.py",
                     ),
                     os.path.abspath(input_view),
                     os.path.abspath(output_view),
@@ -151,7 +152,7 @@ class CheckTopLevel(KLayoutStep):
     """
 
     id = "KLayout.CheckTopLevel"
-    name = "Check the top-level name"
+    name = "Check Top-Level Name"
 
     inputs = [DesignFormat.GDS]
     outputs = []
@@ -188,7 +189,7 @@ class CheckSize(KLayoutStep):
     """
 
     id = "KLayout.CheckSize"
-    name = "Check Size"
+    name = "Check Slot Size"
 
     inputs = [DesignFormat.GDS]
     outputs = []
@@ -360,6 +361,66 @@ class CheckerKLayoutZeroAreaPolygons(MetricChecker):
     config_vars = [error_on_var]
 
 
+@Step.factory.register()
+class CheckPadMask(KLayoutStep):
+    """
+    Check that the pad openings match
+    the default CoB padring.
+    """
+
+    id = "KLayout.CheckPadMask"
+    name = "Check Pad Mask"
+
+    inputs = [
+        DesignFormat.GDS,
+    ]
+    outputs = []
+
+    config_vars = ws_config_vars
+
+    def run(self, state_in: State, **kwargs) -> Tuple[ViewsUpdate, MetricsUpdate]:
+        metrics_updates: MetricsUpdate = {}
+
+        script = os.path.join(
+            os.path.dirname(__file__),
+            "scripts",
+            "klayout",
+            "check_mask.drc",
+        )
+
+        mask = os.path.join(
+            os.path.dirname(__file__),
+            "assets",
+            "golden_masks",
+            f"mask_{self.config['WS_SLOT']}.gds",
+        )
+
+        output = os.path.join(self.step_dir, "masked.gds")
+
+        input_view = state_in[DesignFormat.GDS]
+        assert isinstance(input_view, Path)
+
+        info(f"Running KLayout pad mask check…")
+
+        self.run_subprocess(
+            [
+                "klayout",
+                "-b",
+                "-zz",
+                "-r",
+                script,
+                "-rd",
+                f"input={os.path.abspath(input_view)}",
+                "-rd",
+                f"mask={os.path.abspath(mask)}",
+                "-rd",
+                f"output={os.path.abspath(output)}",
+            ]
+        )
+
+        return {}, metrics_updates
+
+
 class PrecheckFlow(SequentialFlow):
 
     Steps: List[Type[Step]] = [
@@ -374,6 +435,8 @@ class PrecheckFlow(SequentialFlow):
         # Check that cell for id exists
         # Replace cell with content
         GenerateID,
+        # Render the layout
+        KLayout.Render,
         # Check the density
         KLayout.Density,
         Checker.KLayoutDensity,
@@ -434,7 +497,7 @@ def main(
     print(f"slot: {slot}")
     print(f"threads: {threads}")
     print(f"workers: {workers}")
-    
+
     if threads == "max":
         threads = os.cpu_count() or 1
     else:
@@ -444,14 +507,11 @@ def main(
         "DESIGN_NAME": top_cell,
         "KLAYOUT_READ_LAYOUT": input_layout,
         "KLAYOUT_WRITE_LAYOUT": output_layout,
-        
         "WS_ID": die_id,
         "WS_SLOT": slot,
         "WS_COB": cob,
-        
         # Do not error on magic DRC violations
         "ERROR_ON_MAGIC_DRC": False,
-
         # Prevent false positive DRC errors in I/O cells
         "MAGIC_GDS_FLATGLOB": [
             # For contacts
@@ -490,31 +550,41 @@ def main(
             "xdec32_*",
             "sa_*",
         ],
-        
+        # Image render settings
+        "KLAYOUT_RENDER_RESOLUTION": 4096,
+        "KLAYOUT_RENDER_OVERSAMPLING": 3,
+        "KLAYOUT_PROPERTIES": os.path.join(
+            os.path.dirname(__file__),
+            "assets",
+            "gf180mcu_render.lyp",
+        ),
         "KLAYOUT_DRC_THREADS": threads,
-        
         # "max" equals max hardware threads
         "KLAYOUT_DRC_OPTIONS": {
-          "decks": "all,-antenna,-density,-cup", # disable CUP for now
-          "variant": PDK,
-          "workers": workers,
+            "decks": "all,-antenna,-density,-cup",  # disable CUP for now
+            "variant": PDK,
+            "workers": workers,
         },
-
         "KLAYOUT_DENSITY_OPTIONS": {
-          "decks": "density",
-          "variant": PDK,
-          "workers": workers,
+            "decks": "density",
+            "variant": PDK,
+            "workers": workers,
         },
-
         "KLAYOUT_ANTENNA_OPTIONS": {
-          "decks": "antenna",
-          "variant": PDK,
-          "workers": workers,
+            "decks": "antenna",
+            "variant": PDK,
+            "workers": workers,
         },
     }
 
     # Run flow
-    flow = PrecheckFlow(
+    Flow = PrecheckFlow
+    if cob:
+        # Check that the pad openings match
+        # the default CoB padring.
+        Flow = Flow.Substitute([("+KLayout.CheckSize", CheckPadMask)])
+    
+    flow = Flow(
         flow_cfg,
         design_dir=design_dir,
         pdk_root=PDK_ROOT,
@@ -547,10 +617,18 @@ if __name__ == "__main__":
     parser.add_argument("--output", help="The layout file to write.", default=None)
     parser.add_argument("--top", help="The top-level cell in the layout.")
     parser.add_argument("--id", default="FFFFFFFF", help="The ID to use for this chip.")
-    parser.add_argument("--cob", action="store_true", help="Use the CoB (Chip-On-Board) packaging option (extra checks).")
+    parser.add_argument(
+        "--cob",
+        action="store_true",
+        help="Use the CoB (Chip-On-Board) packaging option (extra checks).",
+    )
     parser.add_argument("--dir", default=".", help="Directory where to run the flow.")
-    parser.add_argument("--threads", default="max", help="Number of threads to use. Integer or 'max'.")
-    parser.add_argument("--workers", default=1, help="Number of workers to use. Integer or 'max'.")
+    parser.add_argument(
+        "--threads", default="max", help="Number of threads to use. Integer or 'max'."
+    )
+    parser.add_argument(
+        "--workers", default=1, help="Number of workers to use. Integer or 'max'."
+    )
     parser.add_argument(
         "--slot",
         default="1x1",

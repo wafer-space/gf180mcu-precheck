@@ -1,0 +1,26 @@
+# klayout -b -r extract_mask.drc -rd input=input.gds -rd mask=mask.gds -rd output=output.gds
+
+source($input)
+mask_layout = layout($mask)
+target($output)
+
+mask = mask_layout.input(37, 0)
+
+# Ensure that the input layout has "pad"
+# at the same locations as the mask.
+# Additional pad openings, e.g. in the 
+# center of the die, are fine.
+
+xor_result = input(37, 0).and(mask).xor(mask)
+
+status = 0
+
+if xor_result.is_empty?
+  puts "Success: Pad mask matches!"
+else
+  puts "Error: Pad mask does not match!"
+  status = 1
+end
+xor_result.output("result")
+
+exit(status)

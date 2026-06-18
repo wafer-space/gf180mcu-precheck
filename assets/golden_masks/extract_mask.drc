@@ -1,0 +1,7 @@
+# klayout -b -r extract_mask.drc -rd input=in.gds -rd output=mask.gds
+
+source($input)
+target($output)
+
+# Pad 37/0 
+input(37, 0).merged.output(37, 0)
