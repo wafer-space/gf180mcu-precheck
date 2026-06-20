@@ -23,6 +23,17 @@ jobs:
       packages: write
 
     steps:
+      # The precheck image bundles the full nix EDA toolchain + PDK and is
+      # loaded into the local daemon for verification, so free up disk first.
+      - name: Maximize build space
+        uses: AdityaGarg8/remove-unwanted-software@v5
+        with:
+          remove-dotnet: "true"
+          remove-android: "true"
+          remove-haskell: "true"
+          remove-codeql: "true"
+          remove-docker-images: "true"
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -84,13 +95,56 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=${{ steps.version.outputs.version }}
 
-      - name: Build and push Docker image
+      # Build the image and load it into the local Docker daemon (do NOT push
+      # yet) so the exact bytes can be DRC-verified before anything is
+      # published. provenance:false is required because `load: true` cannot
+      # import a buildx attestation manifest-list into the Docker daemon.
+      - name: Build Docker image (load for verification)
+        id: build
         uses: docker/build-push-action@v5
         with:
           context: .
-          # Only push to GHCR for branch/tag pushes on the main repo (not PRs, not forks)
-          push: ${{ github.event_name != 'pull_request' && github.repository == 'wafer-space/gf180mcu-precheck' }}
+          load: true
+          push: false
+          provenance: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: ${{ steps.gha_cache_permissions.outputs.can_write == 'true' && 'type=gha,mode=max' || '' }}
+
+      # A known-good design to drive a complete DRC run. Cloned on the host;
+      # the container itself runs fully offline (network_disabled).
+      - name: Clone example layouts
+        run: git clone --depth 1 https://github.com/wafer-space/gf180mcu-example-layouts.git
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      # Verify the freshly built image can run a complete DRC check using the
+      # exact command line and container configuration that the
+      # platform.wafer.space checker machines use (tasks_checks.py:do_starting).
+      #
+      # The image is pinned by its immutable content-addressed ID, not a tag,
+      # so a concurrent build/publish cannot swap it out from under the test.
+      - name: Verify precheck DRC on the built image
+        run: |
+          uv run scripts/verify_precheck_docker.py \
+            --image "${{ steps.build.outputs.imageid }}" \
+            --input gf180mcu-example-layouts/5v/0p5x0p5/chip_top.oas \
+            --top chip_top \
+            --slot 0p5x0p5 \
+            --id DEADBEEF
+
+      # Publish only after verification passes. The cache is warm from the build
+      # above, so this re-exports the identical image near-instantly.
+      # Only push for branch/tag pushes on the main repo (not PRs, not forks).
+      - name: Push Docker image
+        id: push
+        if: github.event_name != 'pull_request' && github.repository == 'wafer-space/gf180mcu-precheck'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
