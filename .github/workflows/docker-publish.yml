@@ -135,16 +135,14 @@ jobs:
             --slot 0p5x0p5 \
             --id DEADBEEF
 
-      # Publish only after verification passes. The cache is warm from the build
-      # above, so this re-exports the identical image near-instantly.
-      # Only push for branch/tag pushes on the main repo (not PRs, not forks).
-      - name: Push Docker image
+      # Publish only after verification passes. We push the *exact* image that
+      # was just verified (pinned by its immutable ID) rather than rebuilding,
+      # so the registry receives byte-for-byte the image that passed the DRC
+      # check. Only push for branch/tag pushes on the main repo (not PRs/forks).
+      - name: Push verified Docker image
         id: push
         if: github.event_name != 'pull_request' && github.repository == 'wafer-space/gf180mcu-precheck'
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
+        env:
+          IMAGE_ID: ${{ steps.build.outputs.imageid }}
+          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+        run: uv run scripts/push_image_tags.py
