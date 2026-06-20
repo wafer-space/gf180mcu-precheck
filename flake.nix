@@ -57,6 +57,7 @@
               ];
             extra-packages = with pkgs; [
               gnumake # Required for using Makefile in nix environment
+              procps # Provides `pmap`, shelled out to by the open_pdks gf180mcu KLayout DRC density deck
             ];
           });
         }
