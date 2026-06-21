@@ -35,10 +35,12 @@ Exit status is ``0`` only if the container exits ``0`` *and* a non-empty
 
 import argparse
 import io
+import shutil
 import sys
 import tarfile
 import tempfile
 from pathlib import Path
+from typing import Optional
 
 import docker
 import docker.errors
@@ -77,10 +79,13 @@ def run_check(
     slot: str,
     die_id: str,
     mem_limit: str,
+    output_path: Optional[Path] = None,
 ) -> int:
     """Run the precheck in a container exactly as the platform does.
 
-    Returns the container exit code (and asserts the output GDS exists).
+    Returns the container exit code (and asserts the output GDS exists). If
+    ``output_path`` is given, the produced ``/output/design.gds`` is copied
+    there so callers (e.g. CI) can upload it as an artifact.
     """
     client = docker.from_env()
 
@@ -134,7 +139,7 @@ def run_check(
         exit_code = container.wait()["StatusCode"]
         print(f"\n[verify] container exited with status {exit_code}")
 
-        output_ok = _output_gds_present(container)
+        output_ok = fetch_output_gds(container, output_path) > 0
         if exit_code == 0 and output_ok:
             print("[verify] PASS: precheck completed and /output/design.gds was written")
             return 0
@@ -149,15 +154,34 @@ def run_check(
         container.remove(force=True)
 
 
-def _output_gds_present(container) -> bool:
-    """Return True if /output/design.gds exists in the container and is non-empty."""
+def fetch_output_gds(container, dest: Optional[Path]) -> int:
+    """Return the size of /output/design.gds, copying it to ``dest`` if given.
+
+    Returns 0 (and copies nothing) if the file does not exist in the container.
+    """
     try:
-        _bits, stat = container.get_archive("/output/design.gds")
+        bits, stat = container.get_archive("/output/design.gds")
     except docker.errors.NotFound:
-        return False
+        print("[verify] /output/design.gds not found in container")
+        return 0
+
     size = stat.get("size", 0)
     print(f"[verify] /output/design.gds size: {size} bytes")
-    return size > 0
+
+    if dest is not None and size > 0:
+        # get_archive yields a tar stream; pull the single design.gds member out.
+        buf = io.BytesIO()
+        for chunk in bits:
+            buf.write(chunk)
+        buf.seek(0)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        with tarfile.open(fileobj=buf, mode="r") as tar:
+            extracted = tar.extractfile(tar.getmember("design.gds"))
+            with open(dest, "wb") as out:
+                shutil.copyfileobj(extracted, out)
+        print(f"[verify] copied output GDS to {dest} ({dest.stat().st_size} bytes)")
+
+    return size
 
 
 def main() -> int:
@@ -191,6 +215,13 @@ def main() -> int:
         default="24g",
         help="Container memory limit, matching the platform (default: 24g).",
     )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="If set, copy the produced /output/design.gds to this host path "
+        "(e.g. for uploading as a CI artifact).",
+    )
     args = parser.parse_args()
 
     if not args.input.is_file():
@@ -203,6 +234,7 @@ def main() -> int:
         slot=args.slot,
         die_id=args.id,
         mem_limit=args.mem_limit,
+        output_path=args.output,
     )
 
 

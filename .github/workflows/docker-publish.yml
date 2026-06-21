@@ -133,7 +133,18 @@ jobs:
             --input gf180mcu-example-layouts/5v/0p5x0p5/chip_top.oas \
             --top chip_top \
             --slot 0p5x0p5 \
-            --id DEADBEEF
+            --id DEADBEEF \
+            --output verify-output/design.gds
+
+      # Upload the GDS produced by the verification DRC run. Runs even if a
+      # later step fails, and tolerates absence (a failed precheck writes none).
+      - name: Upload verified output GDS
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-design-gds
+          path: verify-output/design.gds
+          if-no-files-found: warn
 
       # Publish only after verification passes. We push the *exact* image that
       # was just verified (pinned by its immutable ID) rather than rebuilding,
