@@ -35,7 +35,7 @@ jobs:
           remove-docker-images: "true"
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0  # Fetch all history for git-describe
 
@@ -70,11 +70,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -82,7 +82,7 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
@@ -101,7 +101,7 @@ jobs:
       # import a buildx attestation manifest-list into the Docker daemon.
       - name: Build Docker image (load for verification)
         id: build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           load: true
@@ -118,7 +118,12 @@ jobs:
         run: git clone --depth 1 https://github.com/wafer-space/gf180mcu-example-layouts.git
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
+        with:
+          # The helper scripts declare deps inline (PEP 723), so there is no
+          # uv.lock / requirements.txt to key a cache on. Disable caching to
+          # avoid a "cache will never get invalidated" warning.
+          enable-cache: false
 
       # Verify the freshly built image can run a complete DRC check using the
       # exact command line and container configuration that the
@@ -140,7 +145,7 @@ jobs:
       # later step fails, and tolerates absence (a failed precheck writes none).
       - name: Upload verified output GDS
         if: success() || failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: verified-design-gds
           path: verify-output/design.gds
