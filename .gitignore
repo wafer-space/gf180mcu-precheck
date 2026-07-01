@@ -11,3 +11,6 @@ gf180mcu-example-layouts/
 
 # Claude Code local settings
 .claude/
+
+# Git worktrees
+.worktrees/
