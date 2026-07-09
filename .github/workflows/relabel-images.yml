@@ -1,0 +1,31 @@
+name: Relabel existing images (one-shot)
+
+# One-shot maintenance workflow for the June 2026 PDK_TAG removal incident:
+# adds the missing gf180mcu-precheck.pdk_version / .pdk_commit labels to
+# already-published images so platform.wafer.space can resolve their
+# metadata. Safe to delete this workflow (and its branch) once run.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Plan only; do not push anything to GHCR"
+        type: boolean
+        default: true
+
+jobs:
+  relabel:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Add missing pdk_version labels to published images
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: python3 scripts/add_pdk_labels.py
