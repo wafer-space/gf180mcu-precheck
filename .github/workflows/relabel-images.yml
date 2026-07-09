@@ -5,7 +5,13 @@ name: Relabel existing images (one-shot)
 # already-published images so platform.wafer.space can resolve their
 # metadata. Safe to delete this workflow (and its branch) once run.
 
+# workflow_dispatch only works for workflows on the default branch, so this
+# also triggers on pushes to its own branch: a push whose commit message
+# contains "[apply]" runs for real, any other push is a dry run.
 on:
+  push:
+    branches:
+      - chore/relabel-existing-images
   workflow_dispatch:
     inputs:
       dry_run:
@@ -27,5 +33,5 @@ jobs:
       - name: Add missing pdk_version labels to published images
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DRY_RUN: ${{ inputs.dry_run }}
+          DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) || (github.event_name == 'push' && !contains(github.event.head_commit.message, '[apply]')) }}
         run: python3 scripts/add_pdk_labels.py
