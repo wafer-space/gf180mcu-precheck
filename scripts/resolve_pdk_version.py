@@ -23,7 +23,7 @@ import urllib.request
 from pathlib import Path
 
 OPEN_PDKS_VERSION_URL = (
-    "https://raw.githubusercontent.com/efabless/open_pdks/{commit}/VERSION"
+    "https://raw.githubusercontent.com/fossi-foundation/open_pdks/{commit}/VERSION"
 )
 
 
