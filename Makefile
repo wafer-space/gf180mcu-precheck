@@ -1,7 +1,7 @@
 MAKEFILE_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
 RUN_TAG = $(shell ls librelane/runs/ | tail -n 1)
-TOP = chip_top
+TOP ?= chip_top
 SLOT ?= 1x1
 DOMAIN ?= 5v
 
@@ -9,6 +9,11 @@ PDK_ROOT ?= $(MAKEFILE_DIR)/gf180mcu
 PDK ?= gf180mcuD
 PDK_COMMIT ?= d658698bd8bcf4e05fc7b5991a701247ba0d744c
 
+ID ?= DEADBEEF 
+THREADS ?= 1
+WORKERS ?= max
+INPUT ?= gf180mcu-example-layouts/${DOMAIN}/${SLOT}/${TOP}.oas  
+ 
 .DEFAULT_GOAL := help
 
 help: ## Show this help message
@@ -34,9 +39,9 @@ clone-layouts: gf180mcu-example-layouts
 .PHONY: clone-layouts
 
 precheck: clone-pdk clone-layouts
-	python3 precheck.py --slot ${SLOT} --cob --input gf180mcu-example-layouts/${DOMAIN}/${SLOT}/${TOP}.oas --id DEADBEEF --workers max --threads 1 --output ${TOP}.oas
+	python3 precheck.py --slot ${SLOT} --cob --input ${INPUT} --id ${ID} --workers ${WORKERS} --threads ${THREADS} --output ${TOP}.oas
 .PHONY: precheck
 
 precheck-no-cob: clone-pdk clone-layouts
-	python3 precheck.py --slot ${SLOT} --input gf180mcu-example-layouts/${DOMAIN}/${SLOT}/${TOP}.oas --id DEADBEEF --workers max --threads 1 --output ${TOP}.oas
+	python3 precheck.py --slot ${SLOT} --input ${INPUT} --id ${ID} --workers ${WORKERS} --threads ${THREADS} --output ${TOP}.oas
 .PHONY: precheck-no-cob
