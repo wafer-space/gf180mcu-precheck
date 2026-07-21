@@ -64,8 +64,6 @@ def draw_qrcode(layout, pixel_width, pixel_height, content, metal_levels, pixel_
 
     # Draw the QR code
     for y in range(height):
-        print("> ", end="")
-
         for x in range(width):
             pixel = img.getpixel((x, y))
 
