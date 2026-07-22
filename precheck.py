@@ -6,12 +6,13 @@
 import os
 import sys
 import shutil
+import hashlib
 import argparse
 
 from typing import List, Type, Tuple, Optional, Literal
 
 from librelane.common import Path, get_script_dir, mkdirp
-from librelane.logging import info
+from librelane.logging import info, err, warn
 from librelane.config import Variable
 from librelane.state import DesignFormat, State
 from librelane.flows.sequential import SequentialFlow
@@ -80,6 +81,18 @@ class ReadLayout(KLayoutStep):
             self.step_dir,
             f"{self.config['DESIGN_NAME']}.{DesignFormat.GDS.extension}",
         )
+        
+        # Check the hash
+        sha256 = hashlib.sha256()
+
+        with open(input_view, "rb") as f:
+            while True:
+                data = f.read(65536)
+                if not data:
+                    break
+                sha256.update(data)
+
+        info(f"SHA256 for {input_view}: {sha256.hexdigest()}")
 
         self.run_pya_script(
             [
@@ -482,21 +495,21 @@ def main(
     os.environ["PDK"] = PDK
 
     if PDK != "gf180mcuD":
-        print(f"Error: Precheck is only supported for gf180mcuD. PDK = {PDK}")
+        err(f"Precheck is only supported for gf180mcuD. PDK = {PDK}")
         sys.exit(1)
 
-    print(f"PDK_ROOT = {PDK_ROOT}")
-    print(f"PDK = {PDK}")
+    info(f"PDK_ROOT = {PDK_ROOT}")
+    info(f"PDK = {PDK}")
 
     if not top_cell:
         top_cell = os.path.basename(input_layout).split(os.path.extsep)[0]
 
-    print(f"top_cell: {top_cell}")
-    print(f"die_id: {die_id}")
-    print(f"cob: {cob}")
-    print(f"slot: {slot}")
-    print(f"threads: {threads}")
-    print(f"workers: {workers}")
+    info(f"top_cell: {top_cell}")
+    info(f"die_id: {die_id}")
+    info(f"cob: {cob}")
+    info(f"slot: {slot}")
+    info(f"threads: {threads}")
+    info(f"workers: {workers}")
 
     if threads == "max":
         threads = os.cpu_count() or 1
@@ -602,10 +615,10 @@ def main(
             with_initial_state=with_initial_state,
         )
     except FlowError as e:
-        print(f"Error: The precheck failed with the following exception: \n{e}")
+        err(f"The precheck failed with the following exception: \n{e}")
         sys.exit(1)
 
-    print(f"Precheck successfully completed.")
+    info(f"Precheck successfully completed.")
 
 
 if __name__ == "__main__":
@@ -662,8 +675,6 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-
-    print(args.skip)
 
     main(
         args.input,
