@@ -35,6 +35,14 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Generated version: $VERSION"
 
+      # Resolve the pinned PDK_COMMIT to a PDK version number so it can be
+      # published as an image label. platform.wafer.space reads the
+      # gf180mcu-precheck.pdk_version label to display version info for
+      # checks. Unresolvable values are fatal and fail the build.
+      - name: Resolve PDK version from Makefile
+        id: pdk
+        run: python3 scripts/resolve_pdk_version.py | tee -a "$GITHUB_OUTPUT"
+
       - name: Generate SHA tag prefix
         id: sha_prefix
         run: |
@@ -83,6 +91,18 @@ jobs:
             type=sha,prefix=${{ steps.sha_prefix.outputs.value }}-,enable=${{ steps.sha_prefix.outputs.value != '' }}
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=${{ steps.version.outputs.version }}
+          labels: |
+            gf180mcu-precheck.pdk_version=${{ steps.pdk.outputs.pdk_version }}
+            gf180mcu-precheck.pdk_commit=${{ steps.pdk.outputs.pdk_commit }}
+
+      # Refuse to build/publish an image whose promised labels did not all
+      # resolve to non-empty values (e.g. a typo'd step output silently
+      # expanding to ""). See the June 2026 PDK_TAG removal incident: images
+      # were published without a resolvable PDK version for weeks.
+      - name: Verify required image labels are resolved
+        env:
+          METADATA_JSON: ${{ steps.meta.outputs.json }}
+        run: python3 scripts/check_image_labels.py
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
