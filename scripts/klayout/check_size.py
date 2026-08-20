@@ -45,15 +45,43 @@ def check_top(
     # layer, required/forbidden, message
     layers = [
         # Forbidden
-        {"layer": pya.LayerInfo(82, 0, "Via5"),     "forbidden": True, "required": False, "message": "Layer 'Via5' is not part of the wafers.space process stack."},
-        {"layer": pya.LayerInfo(53, 0, "MetalTop"), "forbidden": True, "required": False, "message": "Layer 'MetalTop' is not part of the wafers.space process stack."},
-        
-        {"layer": pya.LayerInfo(24, 0, "ESD"), "forbidden": True, "required": False, "message": "Layer 'ESD' is not part of the wafers.space process stack."},
-        {"layer": pya.LayerInfo(96, 0, "FuseWindow_D"), "forbidden": True, "required": False, "message": "Layer 'FuseWindow_D' is not part of the wafers.space process stack."},
-        {"layer": pya.LayerInfo(96, 0, "POLYFUSE"), "forbidden": True, "required": False, "message": "Layer 'FuseWindow_D' is not part of the wafers.space process stack."},
-        
+        {
+            "layer": pya.LayerInfo(82, 0, "Via5"),
+            "forbidden": True,
+            "required": False,
+            "message": "Layer 'Via5' is not part of the wafers.space process stack.",
+        },
+        {
+            "layer": pya.LayerInfo(53, 0, "MetalTop"),
+            "forbidden": True,
+            "required": False,
+            "message": "Layer 'MetalTop' is not part of the wafers.space process stack.",
+        },
+        {
+            "layer": pya.LayerInfo(24, 0, "ESD"),
+            "forbidden": True,
+            "required": False,
+            "message": "Layer 'ESD' is not part of the wafers.space process stack.",
+        },
+        {
+            "layer": pya.LayerInfo(96, 0, "FuseWindow_D"),
+            "forbidden": True,
+            "required": False,
+            "message": "Layer 'FuseWindow_D' is not part of the wafers.space process stack.",
+        },
+        {
+            "layer": pya.LayerInfo(96, 0, "POLYFUSE"),
+            "forbidden": True,
+            "required": False,
+            "message": "Layer 'FuseWindow_D' is not part of the wafers.space process stack.",
+        },
         # Required
-        {"layer": pya.LayerInfo(167, 5, "GUARD_RING_MK"), "forbidden": False, "required": True, "message": "Layer 'GUARD_RING_MK' is not used. wafers.space requires a seal ring (guard ring) around the die."},
+        {
+            "layer": pya.LayerInfo(167, 5, "GUARD_RING_MK"),
+            "forbidden": False,
+            "required": True,
+            "message": "Layer 'GUARD_RING_MK' is not used. wafers.space requires a seal ring (guard ring) around the die.",
+        },
     ]
 
     error = False
@@ -61,7 +89,7 @@ def check_top(
         layer, forbidden, required, message = layer_dict.values()
 
         region = pya.Region(ly.top_cell().begin_shapes_rec(ly.layer(layer)))
-        
+
         if forbidden and region.count() > 0:
             print(f"[Error]: {layer.name}: {message}")
             error = True

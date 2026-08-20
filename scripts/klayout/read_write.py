@@ -23,5 +23,6 @@ def read_write(
     ly.read(input)
     ly.write(output)
 
+
 if __name__ == "__main__":
     read_write()

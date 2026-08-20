@@ -16,6 +16,7 @@ import pya
 import math
 from .layers import Layers
 
+
 class marker(pya.PCellDeclarationHelper):
     """
     Marker generator for GF180MCU
@@ -44,25 +45,14 @@ class marker(pya.PCellDeclarationHelper):
             unit="um",
         )
 
-        self.layer = self.param(
-            "layer",
-            self.TypeLayer,
-            "Layer",
-            default=Layers.Metal1
-        )
+        self.layer = self.param("layer", self.TypeLayer, "Layer", default=Layers.Metal1)
 
         self.param("area", self.TypeDouble, "Area", readonly=True, unit="um²")
         self.param("perim", self.TypeDouble, "Perimeter", readonly=True, unit="um")
 
     def display_text_impl(self):
         # Description of the cell
-        return (
-            "marker(W="
-            + ("%.3f" % self.width)
-            + ",T="
-            + ("%.3f" % self.thick)
-            + ")"
-        )
+        return "marker(W=" + ("%.3f" % self.width) + ",T=" + ("%.3f" % self.thick) + ")"
 
     def coerce_parameters_impl(self):
         # Limit length and width
@@ -89,43 +79,81 @@ class marker(pya.PCellDeclarationHelper):
         # Make sure points are aligned
         # with manufacturing grid
         dbu = 0.005
-        
+
         to_um = pya.CplxTrans(dbu)
         from_um = to_um.inverted()
-        
+
         hypotenuse = math.sqrt(2 * self.thick**2)
-        
+
         # Outer triangle
         points = []
-        
+
         # Top right
         points.append(pya.DPoint(self.width, self.width))
-        
+
         # Bottom right
-        points.append(pya.DPoint(self.width - self.thick + self.thick, self.thick + hypotenuse - self.thick/2))
-        points.append(pya.DPoint(self.width - (self.thick + hypotenuse - self.thick/2), self.thick + hypotenuse - self.thick/2))
-        
+        points.append(
+            pya.DPoint(
+                self.width - self.thick + self.thick,
+                self.thick + hypotenuse - self.thick / 2,
+            )
+        )
+        points.append(
+            pya.DPoint(
+                self.width - (self.thick + hypotenuse - self.thick / 2),
+                self.thick + hypotenuse - self.thick / 2,
+            )
+        )
+
         # Top left
-        points.append(pya.DPoint(self.thick + hypotenuse - self.thick/2, self.width - (self.thick + hypotenuse - self.thick/2)))
-        points.append(pya.DPoint(self.thick + hypotenuse - self.thick/2, self.width - self.thick + self.thick))
+        points.append(
+            pya.DPoint(
+                self.thick + hypotenuse - self.thick / 2,
+                self.width - (self.thick + hypotenuse - self.thick / 2),
+            )
+        )
+        points.append(
+            pya.DPoint(
+                self.thick + hypotenuse - self.thick / 2,
+                self.width - self.thick + self.thick,
+            )
+        )
 
         region_outer = pya.Region(from_um * pya.DPolygon(points))
 
         # Inner triangle
         points = []
-        
+
         # Top right
         points.append(pya.DPoint(self.width - self.thick, self.width - self.thick))
-        
+
         # Bottom right
-        points.append(pya.DPoint(self.width - self.thick, self.thick + hypotenuse + self.thick/2))
-        points.append(pya.DPoint(self.width - self.thick - self.thick/2, self.thick + hypotenuse + self.thick/2))
-        
+        points.append(
+            pya.DPoint(
+                self.width - self.thick, self.thick + hypotenuse + self.thick / 2
+            )
+        )
+        points.append(
+            pya.DPoint(
+                self.width - self.thick - self.thick / 2,
+                self.thick + hypotenuse + self.thick / 2,
+            )
+        )
+
         # Top left
-        points.append(pya.DPoint(self.thick + hypotenuse + self.thick/2, self.width - self.thick - self.thick/2))
-        points.append(pya.DPoint(self.thick + hypotenuse + self.thick/2, self.width - self.thick))
-        
+        points.append(
+            pya.DPoint(
+                self.thick + hypotenuse + self.thick / 2,
+                self.width - self.thick - self.thick / 2,
+            )
+        )
+        points.append(
+            pya.DPoint(
+                self.thick + hypotenuse + self.thick / 2, self.width - self.thick
+            )
+        )
+
         region_inner = pya.Region(from_um * pya.DPolygon(points))
-        
+
         for polygon in (region_outer - region_inner).each():
             self.cell.shapes(self.layer).insert(to_um * polygon)
