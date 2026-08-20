@@ -42,35 +42,35 @@ def check_top(
         print("[Error]: Database unit (dbu) is not 0.001um.")
         sys.exit(-1)
 
-    # Check max metal layer
-    Via5 = pya.LayerInfo(82, 0)
-    MetalTop = pya.LayerInfo(53, 0)
+    # layer, required/forbidden, message
+    layers = [
+        # Forbidden
+        {"layer": pya.LayerInfo(82, 0, "Via5"),     "forbidden": True, "required": False, "message": "Layer 'Via5' is not part of the wafers.space process stack."},
+        {"layer": pya.LayerInfo(53, 0, "MetalTop"), "forbidden": True, "required": False, "message": "Layer 'MetalTop' is not part of the wafers.space process stack."},
+        
+        {"layer": pya.LayerInfo(24, 0, "ESD"), "forbidden": True, "required": False, "message": "Layer 'ESD' is not part of the wafers.space process stack."},
+        {"layer": pya.LayerInfo(96, 0, "FuseWindow_D"), "forbidden": True, "required": False, "message": "Layer 'FuseWindow_D' is not part of the wafers.space process stack."},
+        {"layer": pya.LayerInfo(96, 0, "POLYFUSE"), "forbidden": True, "required": False, "message": "Layer 'FuseWindow_D' is not part of the wafers.space process stack."},
+        
+        # Required
+        {"layer": pya.LayerInfo(167, 5, "GUARD_RING_MK"), "forbidden": False, "required": True, "message": "Layer 'GUARD_RING_MK' is not used. wafers.space requires a seal ring (guard ring) around the die."},
+    ]
 
-    Via5_region = pya.Region(ly.top_cell().begin_shapes_rec(ly.layer(Via5)))
-    MetalTop_region = pya.Region(ly.top_cell().begin_shapes_rec(ly.layer(MetalTop)))
+    error = False
+    for layer_dict in layers:
+        layer, forbidden, required, message = layer_dict.values()
 
-    if Via5_region.count() > 0:
-        print(
-            f"[Error]: Layer 'Via5' is used. wafers.space uses the 5LM metal stackup."
-        )
-        sys.exit(-1)
+        region = pya.Region(ly.top_cell().begin_shapes_rec(ly.layer(layer)))
+        
+        if forbidden and region.count() > 0:
+            print(f"[Error]: {layer.name}: {message}")
+            error = True
 
-    if MetalTop_region.count() > 0:
-        print(
-            f"[Error]: Layer 'MetalTop' is used. wafers.space uses the 5LM metal stackup."
-        )
-        sys.exit(-1)
+        if required and region.count() == 0:
+            print(f"[Error]: {layer.name}: {message}")
+            error = True
 
-    # Check sealring exists
-    GUARD_RING_MK = pya.LayerInfo(167, 5)
-    GUARD_RING_MK_region = pya.Region(
-        ly.top_cell().begin_shapes_rec(ly.layer(GUARD_RING_MK))
-    )
-
-    if GUARD_RING_MK_region.count() == 0:
-        print(
-            f"[Error]: Layer 'GUARD_RING_MK' is not used. wafers.space requires a seal ring (guard ring) around the die."
-        )
+    if error:
         sys.exit(-1)
 
     # Check layout size
