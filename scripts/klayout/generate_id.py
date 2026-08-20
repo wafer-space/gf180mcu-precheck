@@ -69,29 +69,36 @@ def check_top(
     shuttle_id_cell = ly.cell("gf180mcu_ws_ip__shuttle_id")
     project_id_cell = ly.cell("gf180mcu_ws_ip__project_id")
     marker_cell = ly.cell("gf180mcu_ws_ip__marker")
-    
+
     # If CoB, ensure the cell instances exist
     # and their location and size is correct
     if cob:
         for cell, coords in [
             # Bottom left corner
-            (qrcode_id_cell, (26,26,168.8,168.8)),
-            (shuttle_id_cell, (26,175.6,85.5,371.1)),
-            (project_id_cell, (175.6,26,371.1,85.5)),
+            (qrcode_id_cell, (26, 26, 168.8, 168.8)),
+            (shuttle_id_cell, (26, 175.6, 85.5, 371.1)),
+            (project_id_cell, (175.6, 26, 371.1, 85.5)),
             # Top right corner
-            (marker_cell, (
-                topcell.dbbox().width() - 36 - 245,
-                topcell.dbbox().height() - 36 - 245,
-                topcell.dbbox().width() - 36,
-                topcell.dbbox().height() - 36
-            ))
+            (
+                marker_cell,
+                (
+                    topcell.dbbox().width() - 36 - 245,
+                    topcell.dbbox().height() - 36 - 245,
+                    topcell.dbbox().width() - 36,
+                    topcell.dbbox().height() - 36,
+                ),
+            ),
         ]:
             cell_insts = [item.child_inst() for item in cell.each_parent_inst()]
-            assert (len(cell_insts) == 1), f"Error: '{cell.name}' must be instantiated exactly once."
-            assert (cell_insts[0].dbbox() == pya.DBox(coords[0], coords[1], coords[2], coords[3])), f"Error: '{cell.name}' must have coordinates {coords}, is {cell_insts[0].dbbox()}."
-    
+            assert (
+                len(cell_insts) == 1
+            ), f"Error: '{cell.name}' must be instantiated exactly once."
+            assert cell_insts[0].dbbox() == pya.DBox(
+                coords[0], coords[1], coords[2], coords[3]
+            ), f"Error: '{cell.name}' must have coordinates {coords}, is {cell_insts[0].dbbox()}."
+
     # Generate QRCode ID
-    
+
     qrcode_width = 142.8
     qrcdoe_height = 142.8
     qrcode_pixel = 21
@@ -129,13 +136,19 @@ def check_top(
 
     def draw_text_id(ly, text):
         "Create text on all metal layers and flatten the cell."
-        
+
         text_id_width = 195.5
         text_id_height = 59.5
-        
+
         text_id_cell = ly.cell(ly.add_cell(f"text_id_{text}"))
-        
-        for layer in [Layers.Metal1, Layers.Metal2, Layers.Metal3, Layers.Metal4, Layers.Metal5]:
+
+        for layer in [
+            Layers.Metal1,
+            Layers.Metal2,
+            Layers.Metal3,
+            Layers.Metal4,
+            Layers.Metal5,
+        ]:
             param = {
                 "text": text,
                 "layer": layer,
@@ -145,44 +158,48 @@ def check_top(
             text_id_cell.insert(
                 pya.DCellInstArray(
                     text_id_cell_layer,
-                    pya.DPoint(
-                        0, 0
-                    ),
+                    pya.DPoint(0, 0),
                 )
             )
 
         if not text_id_cell:
             print("Error: Couldn't create the text id cell.")
             sys.exit(1)
-        
+
         # Flatten all levels
         text_id_cell.flatten(-1)
-        
+
         # Ensure the text fits in the specified area
-        assert text_id_cell.dbbox().width() <= text_id_width, "text_id_cell width larger than expected"
-        assert text_id_cell.dbbox().height() <= text_id_height, "text_id_cell height larger than expected"
-        
+        assert (
+            text_id_cell.dbbox().width() <= text_id_width
+        ), "text_id_cell width larger than expected"
+        assert (
+            text_id_cell.dbbox().height() <= text_id_height
+        ), "text_id_cell height larger than expected"
+
         # Add layers
         for layer in [Layers.PR_bndry, Layers.PMNDMY, Layers.NDMY]:
             text_id_cell.shapes(layer).insert(
                 pya.DBox.new(0, 0, text_id_width, text_id_height)
             )
-        
+
         return text_id_cell
-    
+
     # Generate readble ID
-    
+
     tmp_ly = pya.Layout()
-    
+
     shuttle_id = id[0:4]
     project_id = id[4:8]
-    
+
     shuttle_id_cell_tmp = draw_text_id(tmp_ly, shuttle_id)
     project_id_cell_tmp = draw_text_id(tmp_ly, project_id)
 
     if project_id_cell:
         # Make sure both cells are of the same size
-        assert project_id_cell.bbox() == project_id_cell_tmp.bbox(), "project_id_cell is not of the right size"
+        assert (
+            project_id_cell.bbox() == project_id_cell_tmp.bbox()
+        ), "project_id_cell is not of the right size"
 
         # Clear the ID cells
         project_id_cell.clear()
@@ -192,20 +209,28 @@ def check_top(
 
     if shuttle_id_cell:
         # Make sure both cells are of the same size
-        assert shuttle_id_cell.bbox() == shuttle_id_cell_tmp.bbox(), "shuttle_id_cell is not of the right size"
-    
+        assert (
+            shuttle_id_cell.bbox() == shuttle_id_cell_tmp.bbox()
+        ), "shuttle_id_cell is not of the right size"
+
         # Clear the ID cells
         shuttle_id_cell.clear()
-    
+
         # Copy the contents into the id cell
         shuttle_id_cell.copy_tree(shuttle_id_cell_tmp)
-    
+
     # Generate Marker
-    
+
     tmp_ly = pya.Layout()
     marker_cell_tmp = tmp_ly.cell(tmp_ly.add_cell("gf180mcu_ws_ip__marker"))
 
-    for layer in [Layers.Metal1, Layers.Metal2, Layers.Metal3, Layers.Metal4, Layers.Metal5]:
+    for layer in [
+        Layers.Metal1,
+        Layers.Metal2,
+        Layers.Metal3,
+        Layers.Metal4,
+        Layers.Metal5,
+    ]:
         # Create the QRCode PCell instance
         param = {
             "width": 245,
@@ -217,32 +242,34 @@ def check_top(
         if not marker_cell_layer:
             print("Error: Couldn't create marker PCell instance.")
             sys.exit(1)
-        
+
         marker_cell_tmp.insert(
             pya.DCellInstArray(
                 marker_cell_layer,
-                pya.DPoint(
-                    0, 0
-                ),
+                pya.DPoint(0, 0),
             )
         )
 
     # Flatten all levels
     marker_cell_tmp.flatten(-1)
-    
+
     # Add layers
     for layer in [Layers.PR_bndry]:
         marker_cell_tmp.shapes(layer).insert(
-            pya.DBox.new(0, 0, marker_cell_tmp.dbbox().p2.x, marker_cell_tmp.dbbox().p2.y)
+            pya.DBox.new(
+                0, 0, marker_cell_tmp.dbbox().p2.x, marker_cell_tmp.dbbox().p2.y
+            )
         )
-    
+
     if marker_cell:
         # Make sure both cells are of the same size
-        assert marker_cell_tmp.bbox() == marker_cell.bbox(), "marker_cell is not of the right size"
-        
+        assert (
+            marker_cell_tmp.bbox() == marker_cell.bbox()
+        ), "marker_cell is not of the right size"
+
         # Clear the marker cells
         marker_cell.clear()
-        
+
         # Copy the contents into the marker cell
         marker_cell.copy_tree(marker_cell_tmp)
 
@@ -253,6 +280,7 @@ def check_top(
 
     # Save output layout
     ly.write(output, options)
+
 
 if __name__ == "__main__":
     check_top()
